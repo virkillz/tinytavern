@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,7 +15,9 @@ import {
   Card,
   Chip,
   ActivityIndicator,
+  Avatar,
 } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { CharacterStorageService } from '../services/characterStorage';
 import { StoredCharacter } from '../types';
 
@@ -36,6 +38,15 @@ export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   useEffect(() => {
     loadCharacter();
   }, [characterId]);
+
+  // Reload character when screen comes back into focus (e.g., after editing)
+  useFocusEffect(
+    useCallback(() => {
+      if (characterId) {
+        loadCharacter();
+      }
+    }, [characterId])
+  );
 
   const loadCharacter = async () => {
     try {

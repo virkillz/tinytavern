@@ -46,14 +46,42 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     loadUserProfile();
   }, []);
 
-  // Load messages when selected character changes
+  // Load messages when selected character changes or user profile loads
   useEffect(() => {
     if (selectedCharacter) {
-      loadMessages(selectedCharacter.id);
+      loadMessagesWithFirstMessage(selectedCharacter.id);
     } else {
       setMessages([]);
     }
-  }, [selectedCharacter]);
+  }, [selectedCharacter, userProfile]);
+
+  const loadMessagesWithFirstMessage = async (characterId: string) => {
+    try {
+      const savedMessages = await StorageService.getMessages(characterId);
+      
+      // If no saved messages and we have a character with first_mes, add it
+      if (savedMessages.length === 0 && selectedCharacter?.card.data.first_mes) {
+        const userName = userProfile?.name || 'User';
+        const firstMessage: Message = {
+          id: 'first_message',
+          role: 'assistant',
+          content: selectedCharacter.card.data.first_mes
+            .replace(/\{\{char\}\}/gi, selectedCharacter.name)
+            .replace(/\{\{user\}\}/gi, userName),
+          timestamp: new Date(),
+        };
+        
+        setMessages([firstMessage]);
+        // Save the first message so it persists
+        await StorageService.saveMessages([firstMessage], characterId);
+      } else {
+        setMessages(savedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading messages with first message:', error);
+      setMessages([]);
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -298,32 +326,32 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('Characters')}
             style={styles.chevronButton}
           />
+          {selectedCharacter && selectedCharacter.avatar ? (
+            <Avatar.Image
+              size={40}
+              source={selectedCharacter.avatar === 'default_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: selectedCharacter.avatar }}
+              style={styles.headerAvatar}
+            />
+          ) : (
+            <Avatar.Text
+              size={40}
+              label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
+              style={styles.headerAvatar}
+            />
+          )}
+        </View>
+        
+        <View style={styles.headerCenter}>
           <TouchableOpacity 
             onPress={() => selectedCharacter && navigation.navigate('CharacterDetail', { characterId: selectedCharacter.id })}
             disabled={!selectedCharacter}
           >
-            {selectedCharacter && selectedCharacter.avatar ? (
-              <Avatar.Image
-                size={40}
-                source={selectedCharacter.avatar === 'default_asset' 
-                  ? require('../../assets/default.png') 
-                  : { uri: selectedCharacter.avatar }}
-                style={styles.headerAvatar}
-              />
-            ) : (
-              <Avatar.Text
-                size={40}
-                label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
-                style={styles.headerAvatar}
-              />
-            )}
+            <Title style={styles.headerTitle}>
+              {selectedCharacter ? selectedCharacter.name : 'Chat'}
+            </Title>
           </TouchableOpacity>
-        </View>
-        
-        <View style={styles.headerCenter}>
-          <Title style={styles.headerTitle}>
-            {selectedCharacter ? selectedCharacter.name : 'Chat'}
-          </Title>
         </View>
         
         <View style={styles.headerRight}>
@@ -497,7 +525,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   chevronButton: {
-    marginRight: -8,
+    marginRight: 0,
   },
   headerCenter: {
     flex: 1,
@@ -508,6 +536,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   headerAvatar: {
+    marginLeft: 8,
     // No additional styles needed
   },
   headerTitle: {

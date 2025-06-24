@@ -6,6 +6,7 @@ import {
   Alert,
   Image,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -328,7 +329,12 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
                   </Button>
                 )}
               </View>
-              <View style={styles.tagsContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.tagsScrollView}
+                contentContainerStyle={styles.tagsContainer}
+              >
                 {allTags.map((tag) => (
                   <Chip
                     key={tag}
@@ -340,7 +346,7 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
                     {tag}
                   </Chip>
                 ))}
-              </View>
+              </ScrollView>
             </View>
           )}
 
@@ -481,13 +487,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#666',
   },
+  tagsScrollView: {
+    maxHeight: 50,
+  },
   tagsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    paddingHorizontal: 0,
   },
   tagChip: {
     marginRight: 8,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   resultsInfo: {
     paddingHorizontal: 16,
