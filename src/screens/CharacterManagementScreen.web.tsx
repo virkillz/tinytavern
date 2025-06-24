@@ -18,11 +18,9 @@ import {
   Chip,
   FAB,
 } from 'react-native-paper';
-import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
-import { CharacterStorageService } from '../services/characterStorage';
-import { CharacterCardService } from '../services/characterCard';
-import { PNGDebugger } from '../utils/debugPNG';
+import { CharacterStorageService } from '../services/characterStorage.web';
+import { CharacterCardService } from '../services/characterCard.web';
 import { StoredCharacter } from '../types';
 
 interface Props {
@@ -55,56 +53,48 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
   const importCharacterCard = async () => {
     try {
       setImporting(true);
-
-      // Pick PNG file from file system
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'image/png',
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled || !result.assets?.[0]) {
-        return;
-      }
-
-      const imageUri = result.assets[0].uri;
       
-      // Debug the PNG file first
-      console.log('🔧 Debugging PNG file...');
-      await PNGDebugger.debugPNGFile(imageUri);
+      // Create file input element
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png';
       
-      // Extract character card from PNG
-      const characterCard = await CharacterCardService.extractCharacterFromPNG(imageUri);
-      
-      if (!characterCard) {
-        Alert.alert(
-          'Invalid File', 
-          'This PNG file does not contain valid character card metadata. Check the console for detailed debug information.',
-          [
-            { 
-              text: 'Debug Info', 
-              onPress: () => {
-                Alert.alert(
-                  'Debug Instructions',
-                  'Open your browser/app console (F12) to see detailed PNG analysis. Look for logs starting with 🔍 PNG DEBUG.'
-                );
-              }
-            },
-            { text: 'OK' }
-          ]
-        );
-        return;
-      }
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        
+        if (!file.type.includes('png')) {
+          Alert.alert('Invalid File', 'Please select a PNG file.');
+          return;
+        }
+        
+        try {
+          // Extract character card from PNG
+          const characterCard = await CharacterCardService.extractCharacterFromPNG(file);
+          
+          if (!characterCard) {
+            Alert.alert('Invalid File', 'This PNG file does not contain valid character card metadata.');
+            return;
+          }
 
-      if (!CharacterCardService.validateCharacterCard(characterCard)) {
-        Alert.alert('Invalid Character Card', 'The character card data is incomplete or invalid.');
-        return;
-      }
+          if (!CharacterCardService.validateCharacterCard(characterCard)) {
+            Alert.alert('Invalid Character Card', 'The character card data is incomplete or invalid.');
+            return;
+          }
 
-      // Import character
-      const importedCharacter = await CharacterStorageService.importCharacterFromPNG(imageUri, characterCard);
+          // Import character
+          const importedCharacter = await CharacterStorageService.importCharacterFromPNG(file, characterCard);
+          
+          Alert.alert('Success', `Character "${importedCharacter.name}" imported successfully!`);
+          await loadCharacters();
+          
+        } catch (error) {
+          console.error('Error processing file:', error);
+          Alert.alert('Error', 'Failed to process character card file');
+        }
+      };
       
-      Alert.alert('Success', `Character "${importedCharacter.name}" imported successfully!`);
-      await loadCharacters();
+      input.click();
       
     } catch (error) {
       console.error('Error importing character:', error);
@@ -115,26 +105,15 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const deleteCharacter = async (character: StoredCharacter) => {
-    Alert.alert(
-      'Delete Character',
-      `Are you sure you want to delete "${character.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await CharacterStorageService.deleteCharacter(character.id);
-              await loadCharacters();
-              Alert.alert('Success', 'Character deleted successfully');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete character');
-            }
-          },
-        },
-      ]
-    );
+    if (confirm(`Are you sure you want to delete "${character.name}"?`)) {
+      try {
+        await CharacterStorageService.deleteCharacter(character.id);
+        await loadCharacters();
+        Alert.alert('Success', 'Character deleted successfully');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to delete character');
+      }
+    }
   };
 
   const selectCharacter = async (character: StoredCharacter) => {

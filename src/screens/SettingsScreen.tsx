@@ -16,6 +16,7 @@ import {
   Paragraph,
   ActivityIndicator,
   IconButton,
+  Switch,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { StorageService } from '../utils/storage';
@@ -32,6 +33,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [showFreeOnly, setShowFreeOnly] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -178,9 +180,20 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
             {models.length > 0 && (
               <View style={styles.modelSection}>
-                <Title style={styles.modelTitle}>Select Model</Title>
+                <View style={styles.modelHeader}>
+                  <Title style={styles.modelTitle}>Select Model</Title>
+                  <View style={styles.toggleContainer}>
+                    <Paragraph style={styles.toggleLabel}>Free only</Paragraph>
+                    <Switch
+                      value={showFreeOnly}
+                      onValueChange={setShowFreeOnly}
+                    />
+                  </View>
+                </View>
                 <ScrollView style={styles.modelList} showsVerticalScrollIndicator={false}>
-                  {models.slice(0, 20).map((model) => (
+                  {models
+                    .filter(model => !showFreeOnly || model.name.toLowerCase().includes('free'))
+                    .map((model) => (
                     <Card
                       key={model.id}
                       style={[
@@ -190,7 +203,12 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                       onPress={() => setSelectedModel(model.id)}
                     >
                       <Card.Content>
-                        <Paragraph style={styles.modelName}>{model.name}</Paragraph>
+                        <View style={styles.modelNameRow}>
+                          <Paragraph style={styles.modelName}>{model.name}</Paragraph>
+                          {model.name.toLowerCase().includes('free') && (
+                            <Paragraph style={styles.freeTag}>FREE</Paragraph>
+                          )}
+                        </View>
                         {model.description && (
                           <Paragraph style={styles.modelDescription}>
                             {model.description.length > 100 
@@ -288,9 +306,22 @@ const styles = StyleSheet.create({
   modelSection: {
     marginBottom: 16,
   },
+  modelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   modelTitle: {
     fontSize: 18,
-    marginBottom: 8,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    marginRight: 8,
+    fontSize: 14,
   },
   modelList: {
     maxHeight: 300,
@@ -302,9 +333,24 @@ const styles = StyleSheet.create({
   selectedModelCard: {
     backgroundColor: '#e3f2fd',
   },
+  modelNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   modelName: {
     fontWeight: 'bold',
-    marginBottom: 4,
+    flex: 1,
+  },
+  freeTag: {
+    fontSize: 10,
+    color: '#4caf50',
+    fontWeight: 'bold',
+    backgroundColor: '#e8f5e8',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   modelDescription: {
     fontSize: 12,

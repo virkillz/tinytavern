@@ -16,6 +16,8 @@ import {
   IconButton,
   Title,
   ActivityIndicator,
+  Menu,
+  Avatar,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { StorageService } from '../utils/storage';
@@ -33,6 +35,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [selectedCharacter, setSelectedCharacter] = useState<StoredCharacter | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -189,29 +192,64 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          {selectedCharacter && selectedCharacter.avatar ? (
+            <Avatar.Image
+              size={40}
+              source={{ uri: selectedCharacter.avatar }}
+              style={styles.headerAvatar}
+            />
+          ) : (
+            <Avatar.Text
+              size={40}
+              label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
+              style={styles.headerAvatar}
+            />
+          )}
+        </View>
+        
+        <View style={styles.headerCenter}>
           <Title style={styles.headerTitle}>
             {selectedCharacter ? selectedCharacter.name : 'Chat'}
           </Title>
-          {selectedCharacter && (
-            <Paragraph style={styles.headerSubtitle}>AI Character</Paragraph>
-          )}
         </View>
-        <View style={styles.headerButtons}>
-          <IconButton
-            icon="account-group"
-            size={24}
-            onPress={() => navigation.navigate('Characters')}
-          />
-          <IconButton
-            icon="cog"
-            size={24}
-            onPress={() => navigation.navigate('Settings')}
-          />
-          <IconButton
-            icon="delete"
-            size={24}
-            onPress={clearChat}
-          />
+        
+        <View style={styles.headerRight}>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="menu"
+                size={24}
+                onPress={() => setMenuVisible(true)}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Characters');
+              }}
+              title="Manage Characters"
+              leadingIcon="account-group"
+            />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Settings');
+              }}
+              title="Settings"
+              leadingIcon="cog"
+            />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                clearChat();
+              }}
+              title="Clear Chat"
+              leadingIcon="delete"
+            />
+          </Menu>
         </View>
       </View>
 
@@ -219,21 +257,46 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.emptyContainer}>
           {selectedCharacter ? (
             <>
-              <Paragraph style={styles.emptyText}>
-                Say hello to {selectedCharacter.name}!
+              {selectedCharacter.avatar ? (
+                <Avatar.Image
+                  size={120}
+                  source={{ uri: selectedCharacter.avatar }}
+                  style={styles.largeAvatar}
+                />
+              ) : (
+                <Avatar.Text
+                  size={120}
+                  label={selectedCharacter.name.charAt(0)}
+                  style={styles.largeAvatar}
+                />
+              )}
+              
+              <Title style={styles.characterTitle}>
+                {selectedCharacter.name}
+              </Title>
+              
+              <Paragraph style={styles.characterSubtitle}>
+                AI Character
               </Paragraph>
-              <Paragraph style={styles.characterDescription}>
-                {selectedCharacter.card.data.description}
+              
+              <Paragraph style={styles.greetingText}>
+                Say Hello to {selectedCharacter.name}
               </Paragraph>
             </>
           ) : (
-            <Paragraph style={styles.emptyText}>
-              Start a conversation by typing a message below.
-            </Paragraph>
+            <>
+              <Title style={styles.noCharacterTitle}>
+                No Character Selected
+              </Title>
+              <Paragraph style={styles.noCharacterText}>
+                Select a character from the menu to start chatting
+              </Paragraph>
+            </>
           )}
+          
           {settings && (
             <Paragraph style={styles.modelInfo}>
-              Using: {settings.selectedModel}
+              Model: {settings.selectedModel}
             </Paragraph>
           )}
         </View>
@@ -294,7 +357,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     elevation: 2,
     shadowColor: '#000',
@@ -303,18 +367,23 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   headerLeft: {
+    width: 60,
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
     flex: 1,
+    alignItems: 'center',
+  },
+  headerRight: {
+    width: 60,
+    alignItems: 'flex-end',
+  },
+  headerAvatar: {
+    // No additional styles needed
   },
   headerTitle: {
-    fontSize: 20,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: -4,
-  },
-  headerButtons: {
-    flexDirection: 'row',
+    fontSize: 18,
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
@@ -322,22 +391,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 32,
   },
-  emptyText: {
+  largeAvatar: {
+    marginBottom: 24,
+  },
+  characterTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#000',
+  },
+  characterSubtitle: {
+    fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 32,
   },
-  characterDescription: {
+  greetingText: {
+    fontSize: 18,
     textAlign: 'center',
-    color: '#888',
-    fontSize: 14,
+    color: '#333',
+    marginBottom: 24,
+  },
+  noCharacterTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
     marginBottom: 8,
+    color: '#333',
+  },
+  noCharacterText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 32,
     paddingHorizontal: 16,
   },
   modelInfo: {
     textAlign: 'center',
     color: '#999',
-    fontSize: 12,
+    fontSize: 14,
+    position: 'absolute',
+    bottom: 100,
   },
   messagesList: {
     flex: 1,
