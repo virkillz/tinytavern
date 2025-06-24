@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { StoredCharacter, CharacterCard } from '../types';
+import { CharacterCardService } from './characterCard';
 
 const CHARACTERS_KEY = 'stored_characters';
 const CHARACTER_IMAGES_DIR = `${FileSystem.documentDirectory}character_images/`;
@@ -171,6 +172,74 @@ export class CharacterStorageService {
   // Generate unique ID
   private static generateId(): string {
     return `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Initialize default assistant character if none exist
+  static async initializeDefaultCharacter(): Promise<void> {
+    try {
+      const characters = await this.getAllCharacters();
+      
+      // If there are already characters, don't create default
+      if (characters.length > 0) {
+        return;
+      }
+
+      await this.initializeStorage();
+      
+      // We'll create the character without copying the asset for now
+      // The require() will be handled by React Native's asset system
+      const characterId = this.generateId();
+      
+      // For now, we'll create the character without an avatar file
+      // The default.png will be handled via require() when displaying
+
+      // Create default character card
+      const defaultCharacterCard = CharacterCardService.createCharacterCard({
+        name: 'Assistant',
+        description: 'A helpful AI assistant ready to chat, answer questions, and help with various tasks. I\'m knowledgeable, friendly, and always eager to assist you.',
+        personality: 'Helpful, knowledgeable, friendly, and professional. I enjoy having conversations and helping users with their questions and tasks.',
+        scenario: 'You are chatting with an AI assistant in a casual conversation setting. Feel free to ask questions, discuss topics, or just have a friendly chat.',
+        first_mes: 'Hello! I\'m your AI assistant. I\'m here to help with any questions you might have or just to have a friendly conversation. What would you like to talk about today?',
+        mes_example: '<START>\n{{user}}: Hello, can you help me?\n{{char}}: Of course! I\'d be happy to help you. What do you need assistance with?\n{{user}}: I need help with planning my day.\n{{char}}: I\'d be glad to help you plan your day! Let\'s start by talking about what you need to accomplish. What are your main priorities or tasks for today?',
+        creator: 'System',
+        tags: ['assistant', 'helpful', 'default'],
+      });
+
+      // Save the default character with a special avatar marker
+      const defaultCharacter = await this.saveCharacter({
+        name: 'Assistant',
+        card: defaultCharacterCard,
+        avatar: 'default_asset', // Special marker for default asset
+      });
+
+      console.log('✅ Default assistant character created:', defaultCharacter.name);
+      
+    } catch (error) {
+      console.error('Error creating default character:', error);
+      
+      // Fallback: create character without avatar
+      try {
+        const defaultCharacterCard = CharacterCardService.createCharacterCard({
+          name: 'Assistant',
+          description: 'A helpful AI assistant ready to chat, answer questions, and help with various tasks.',
+          personality: 'Helpful, knowledgeable, friendly, and professional.',
+          scenario: 'You are chatting with an AI assistant in a casual conversation setting.',
+          first_mes: 'Hello! I\'m your AI assistant. How can I help you today?',
+          mes_example: '<START>\n{{user}}: Hello\n{{char}}: Hi there! How can I assist you today?',
+          creator: 'System',
+          tags: ['assistant', 'default'],
+        });
+
+        await this.saveCharacter({
+          name: 'Assistant',
+          card: defaultCharacterCard,
+        });
+
+        console.log('✅ Default assistant character created (without avatar)');
+      } catch (fallbackError) {
+        console.error('Error creating fallback default character:', fallbackError);
+      }
+    }
   }
 
   // Clear all characters (for debugging)

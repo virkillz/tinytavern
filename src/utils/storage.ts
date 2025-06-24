@@ -18,7 +18,30 @@ export const StorageService = {
   async getSettings(): Promise<AppSettings | null> {
     try {
       const settings = await AsyncStorage.getItem(SETTINGS_KEY);
-      return settings ? JSON.parse(settings) : null;
+      if (!settings) return null;
+      
+      const parsed = JSON.parse(settings);
+      
+      // Migration: Convert old settings format to new format
+      if (parsed.apiKey && !parsed.provider) {
+        const migratedSettings: AppSettings = {
+          provider: 'openrouter',
+          providerSettings: {
+            openrouter: {
+              apiKey: parsed.apiKey,
+            },
+          },
+          selectedModel: parsed.selectedModel || '',
+          systemPrompt: parsed.systemPrompt || 'You are a helpful AI assistant.',
+          selectedCharacter: parsed.selectedCharacter,
+        };
+        
+        // Save migrated settings
+        await this.saveSettings(migratedSettings);
+        return migratedSettings;
+      }
+      
+      return parsed;
     } catch (error) {
       console.error('Error getting settings:', error);
       return null;

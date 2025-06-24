@@ -15,6 +15,7 @@ import {
   Card,
   Button,
   ActivityIndicator,
+  Avatar,
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -159,8 +160,15 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     <Card style={styles.characterCard}>
       <TouchableOpacity onPress={() => navigation.navigate('CharacterDetail', { characterId: item.id })}>
         <View style={styles.cardContent}>
-          {item.avatar && (
-            <Image source={{ uri: item.avatar }} style={styles.avatar} />
+          {item.avatar ? (
+            <Image 
+              source={item.avatar === 'default_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: item.avatar }} 
+              style={styles.avatar} 
+            />
+          ) : (
+            <Avatar.Icon size={60} icon="account" style={styles.avatarPlaceholder} />
           )}
           <View style={styles.characterInfo}>
             <Title style={styles.characterName}>{item.name}</Title>
@@ -330,6 +338,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
+    marginRight: 16,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#ccc',
     marginRight: 16,
   },
   characterInfo: {

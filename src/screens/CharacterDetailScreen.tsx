@@ -163,8 +163,15 @@ export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         <Card style={styles.profileCard}>
           <Card.Content>
             <View style={styles.profileHeader}>
-              {character.avatar && (
-                <Image source={{ uri: character.avatar }} style={styles.avatar} />
+              {character.avatar ? (
+                <Image 
+                  source={character.avatar === 'default_asset' 
+                    ? require('../../assets/default.png') 
+                    : { uri: character.avatar }} 
+                  style={styles.avatar} 
+                />
+              ) : (
+                <Avatar.Icon size={80} icon="account" style={styles.avatarPlaceholder} />
               )}
               <View style={styles.nameSection}>
                 <Title style={styles.characterName}>{character.name}</Title>
@@ -302,6 +309,10 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    marginRight: 16,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#ccc',
     marginRight: 16,
   },
   nameSection: {

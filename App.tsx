@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ChatScreen } from './src/screens/ChatScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { CharacterStorageService } from './src/services/characterStorage';
 
 // Import character screens
 import { CharacterManagementScreen } from './src/screens/CharacterManagementScreen';
@@ -17,6 +18,13 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  useEffect(() => {
+    // Initialize default character when app starts
+    CharacterStorageService.initializeDefaultCharacter().catch((error) => {
+      console.error('Failed to initialize default character:', error);
+    });
+  }, []);
+
   try {
     return (
       <SafeAreaProvider>

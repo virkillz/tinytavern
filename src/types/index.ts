@@ -15,8 +15,37 @@ export interface OpenRouterModel {
   };
 }
 
+export interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+  details?: {
+    format: string;
+    family: string;
+    families: string[];
+    parameter_size: string;
+    quantization_level: string;
+  };
+}
+
+export type AIModel = OpenRouterModel | OllamaModel;
+
+export type ProviderType = 'openrouter' | 'ollama';
+
+export interface ProviderSettings {
+  openrouter?: {
+    apiKey: string;
+  };
+  ollama?: {
+    host: string;
+    port: number;
+  };
+}
+
 export interface AppSettings {
-  apiKey: string;
+  provider: ProviderType;
+  providerSettings: ProviderSettings;
   selectedModel: string;
   systemPrompt: string;
   selectedCharacter?: string;

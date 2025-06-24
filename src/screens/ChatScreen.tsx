@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,6 +21,7 @@ import {
   Avatar,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
+import { OllamaService } from '../services/ollama';
 import { StorageService } from '../utils/storage';
 import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
@@ -71,6 +73,17 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       if (savedSettings.selectedCharacter) {
         const character = await CharacterStorageService.getCharacterById(savedSettings.selectedCharacter);
         setSelectedCharacter(character);
+      } else {
+        // If no character is selected, try to select the first available character (likely the default one)
+        const allCharacters = await CharacterStorageService.getAllCharacters();
+        if (allCharacters.length > 0) {
+          setSelectedCharacter(allCharacters[0]);
+          // Update settings to remember this selection
+          await StorageService.saveSettings({
+            ...savedSettings,
+            selectedCharacter: allCharacters[0].id,
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -110,41 +123,84 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const service = new OpenRouterService(settings.apiKey);
-      
-      // Prepare messages for API
-      let apiMessages: Array<{role: string, content: string}>;
-      
-      if (selectedCharacter) {
-        // Use character-based system prompt
-        const characterSystemMessages = CharacterCardService.generateSystemPrompt(selectedCharacter, 'User');
-        const userMessages = newMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+      let responseContent: string = '';
+
+      if (settings.provider === 'openrouter') {
+        if (!settings.providerSettings?.openrouter?.apiKey) {
+          throw new Error('OpenRouter API key not configured');
+        }
+
+        const service = new OpenRouterService(settings.providerSettings.openrouter.apiKey);
         
-        // Combine character system messages with user messages
-        apiMessages = [...characterSystemMessages, ...userMessages];
+        // Prepare messages for OpenRouter API
+        let apiMessages: Array<{role: string, content: string}>;
+        
+        if (selectedCharacter) {
+          // Use character-based system prompt
+          const userName = userProfile?.name || 'User';
+          const characterSystemMessages = CharacterCardService.generateSystemPrompt(selectedCharacter, userName);
+          const userMessages = newMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+          
+          // Combine character system messages with user messages
+          apiMessages = [...characterSystemMessages, ...userMessages];
+        } else {
+          // Use regular system prompt
+          const chatMessages = newMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+          apiMessages = chatMessages;
+        }
+
+        const response = await service.sendMessage(
+          settings.selectedModel, 
+          apiMessages, 
+          selectedCharacter ? undefined : settings.systemPrompt
+        );
+        
+        if (response.choices && response.choices.length > 0) {
+          responseContent = response.choices[0].message.content;
+        } else {
+          throw new Error('No response from OpenRouter');
+        }
+
+      } else if (settings.provider === 'ollama') {
+        if (!settings.providerSettings?.ollama?.host || !settings.providerSettings?.ollama?.port) {
+          throw new Error('Ollama host and port not configured');
+        }
+
+        const service = new OllamaService(
+          settings.providerSettings.ollama.host, 
+          settings.providerSettings.ollama.port
+        );
+
+        // Prepare system prompt for Ollama
+        let systemPrompt = settings.systemPrompt;
+        if (selectedCharacter) {
+          // Generate character-based system prompt
+          const userName = userProfile?.name || 'User';
+          const characterPrompts = CharacterCardService.generateSystemPrompt(selectedCharacter, userName);
+          systemPrompt = characterPrompts.map(p => p.content).join('\n');
+        }
+
+        responseContent = await service.sendMessage(
+          newMessages,
+          settings.selectedModel,
+          systemPrompt
+        );
+
       } else {
-        // Use regular system prompt
-        const chatMessages = newMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        }));
-        apiMessages = chatMessages;
+        throw new Error(`Unsupported provider: ${settings.provider}`);
       }
 
-      const response = await service.sendMessage(
-        settings.selectedModel, 
-        apiMessages, 
-        selectedCharacter ? undefined : settings.systemPrompt
-      );
-      
-      if (response.choices && response.choices.length > 0) {
+      if (responseContent) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.choices[0].message.content,
+          content: responseContent,
           timestamp: new Date(),
         };
 
@@ -191,7 +247,12 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       ]}>
         <View style={styles.messageHeader}>
           {avatarSource ? (
-            <Avatar.Image size={32} source={{ uri: avatarSource }} />
+            <Avatar.Image 
+              size={32} 
+              source={avatarSource === 'default_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: avatarSource }} 
+            />
           ) : (
             <Avatar.Text size={32} label={displayName.charAt(0)} />
           )}
@@ -221,11 +282,17 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <TouchableOpacity 
+          style={styles.headerLeft}
+          onPress={() => selectedCharacter && navigation.navigate('CharacterDetail', { characterId: selectedCharacter.id })}
+          disabled={!selectedCharacter}
+        >
           {selectedCharacter && selectedCharacter.avatar ? (
             <Avatar.Image
               size={40}
-              source={{ uri: selectedCharacter.avatar }}
+              source={selectedCharacter.avatar === 'default_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: selectedCharacter.avatar }}
               style={styles.headerAvatar}
             />
           ) : (
@@ -235,7 +302,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.headerAvatar}
             />
           )}
-        </View>
+        </TouchableOpacity>
         
         <View style={styles.headerCenter}>
           <Title style={styles.headerTitle}>
@@ -276,7 +343,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
                 setMenuVisible(false);
                 navigation.navigate('Settings');
               }}
-              title="Settings"
+              title="Providers"
               leadingIcon="cog"
             />
             <Menu.Item
@@ -298,7 +365,9 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
               {selectedCharacter.avatar ? (
                 <Avatar.Image
                   size={120}
-                  source={{ uri: selectedCharacter.avatar }}
+                  source={selectedCharacter.avatar === 'default_asset' 
+                    ? require('../../assets/default.png') 
+                    : { uri: selectedCharacter.avatar }}
                   style={styles.largeAvatar}
                 />
               ) : (
@@ -361,15 +430,15 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           onSubmitEditing={sendMessage}
           disabled={loading}
         />
-        <Button
+        <IconButton
+          icon={loading ? "loading" : "send"}
           mode="contained"
           onPress={sendMessage}
           disabled={!inputText.trim() || loading || !settings}
           style={styles.sendButton}
-          loading={loading}
-        >
-          Send
-        </Button>
+          iconColor="#fff"
+          containerColor="#2196f3"
+        />
       </View>
 
       {loading && (
@@ -531,7 +600,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    borderRadius: 2,
+    borderRadius: 24,
     alignSelf: 'flex-end',
   },
   loadingContainer: {

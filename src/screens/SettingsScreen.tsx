@@ -17,18 +17,23 @@ import {
   ActivityIndicator,
   IconButton,
   Switch,
+  SegmentedButtons,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
+import { OllamaService } from '../services/ollama';
 import { StorageService } from '../utils/storage';
-import { OpenRouterModel } from '../types';
+import { ProviderType, AIModel, AppSettings, OpenRouterModel, OllamaModel } from '../types';
 
 interface Props {
   navigation: any;
 }
 
 export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
+  const [provider, setProvider] = useState<ProviderType>('openrouter');
   const [apiKey, setApiKey] = useState('');
-  const [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [ollamaHost, setOllamaHost] = useState('localhost');
+  const [ollamaPort, setOllamaPort] = useState('11434');
+  const [models, setModels] = useState<AIModel[]>([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [loading, setLoading] = useState(false);
@@ -43,19 +48,41 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const settings = await StorageService.getSettings();
       if (settings) {
-        setApiKey(settings.apiKey);
+        setProvider(settings.provider || 'openrouter');
         setSelectedModel(settings.selectedModel);
         setSystemPrompt(settings.systemPrompt || 'You are a helpful AI assistant.');
-        if (settings.apiKey) {
-          await fetchModels(settings.apiKey);
+        
+        // Load provider-specific settings
+        if (settings.providerSettings?.openrouter?.apiKey) {
+          setApiKey(settings.providerSettings.openrouter.apiKey);
         }
+        if (settings.providerSettings?.ollama) {
+          setOllamaHost(settings.providerSettings.ollama.host);
+          setOllamaPort(settings.providerSettings.ollama.port.toString());
+        }
+
+        // Fetch models for current provider
+        await fetchModelsForProvider(settings.provider || 'openrouter', settings);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
   };
 
-  const fetchModels = async (key: string) => {
+  const fetchModelsForProvider = async (providerType: ProviderType, settings?: AppSettings) => {
+    if (providerType === 'openrouter') {
+      const key = settings?.providerSettings?.openrouter?.apiKey || apiKey;
+      if (key) {
+        await fetchOpenRouterModels(key);
+      }
+    } else if (providerType === 'ollama') {
+      const host = settings?.providerSettings?.ollama?.host || ollamaHost;
+      const port = settings?.providerSettings?.ollama?.port || parseInt(ollamaPort);
+      await fetchOllamaModels(host, port);
+    }
+  };
+
+  const fetchOpenRouterModels = async (key: string) => {
     if (!key.trim()) return;
     
     setLoading(true);
@@ -64,34 +91,70 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       const fetchedModels = await service.getModels();
       setModels(fetchedModels);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch models. Please check your API key.');
-      console.error('Error fetching models:', error);
+      Alert.alert('Error', 'Failed to fetch OpenRouter models. Please check your API key.');
+      console.error('Error fetching OpenRouter models:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOllamaModels = async (host: string, port: number) => {
+    setLoading(true);
+    try {
+      const service = new OllamaService(host, port);
+      const fetchedModels = await service.getModels();
+      setModels(fetchedModels);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch Ollama models. Please check your host and port.');
+      console.error('Error fetching Ollama models:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const testConnection = async () => {
-    if (!apiKey.trim()) {
-      Alert.alert('Error', 'Please enter your API key first.');
-      return;
-    }
-
     setTestingConnection(true);
     try {
-      await fetchModels(apiKey);
-      Alert.alert('Success', 'Connection successful! Models loaded.');
+      if (provider === 'openrouter') {
+        if (!apiKey.trim()) {
+          Alert.alert('Error', 'Please enter your OpenRouter API key first.');
+          return;
+        }
+        await fetchOpenRouterModels(apiKey);
+        Alert.alert('Success', 'OpenRouter connection successful! Models loaded.');
+      } else if (provider === 'ollama') {
+        const service = new OllamaService(ollamaHost, parseInt(ollamaPort));
+        const isConnected = await service.testConnection();
+        if (isConnected) {
+          await fetchOllamaModels(ollamaHost, parseInt(ollamaPort));
+          Alert.alert('Success', 'Ollama connection successful! Models loaded.');
+        } else {
+          Alert.alert('Error', 'Failed to connect to Ollama. Please check your host and port.');
+        }
+      }
     } catch (error) {
-      Alert.alert('Error', 'Connection failed. Please check your API key.');
+      Alert.alert('Error', 'Connection test failed.');
     } finally {
       setTestingConnection(false);
     }
   };
 
   const saveSettings = async () => {
-    if (!apiKey.trim()) {
-      Alert.alert('Error', 'Please enter your API key.');
+    // Validate inputs
+    if (provider === 'openrouter' && !apiKey.trim()) {
+      Alert.alert('Error', 'Please enter your OpenRouter API key.');
       return;
+    }
+
+    if (provider === 'ollama') {
+      if (!ollamaHost.trim()) {
+        Alert.alert('Error', 'Please enter Ollama host.');
+        return;
+      }
+      if (!ollamaPort.trim() || isNaN(parseInt(ollamaPort))) {
+        Alert.alert('Error', 'Please enter a valid Ollama port number.');
+        return;
+      }
     }
 
     if (!selectedModel && models.length > 0) {
@@ -100,11 +163,24 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      await StorageService.saveSettings({
-        apiKey: apiKey.trim(),
-        selectedModel: selectedModel || (models.length > 0 ? models[0].id : ''),
+      const newSettings: AppSettings = {
+        provider,
+        providerSettings: {
+          ...(provider === 'openrouter' && {
+            openrouter: { apiKey: apiKey.trim() }
+          }),
+          ...(provider === 'ollama' && {
+            ollama: { 
+              host: ollamaHost.trim(), 
+              port: parseInt(ollamaPort) 
+            }
+          }),
+        },
+        selectedModel: selectedModel || (models.length > 0 ? getModelId(models[0]) : ''),
         systemPrompt: systemPrompt.trim() || 'You are a helpful AI assistant.',
-      });
+      };
+
+      await StorageService.saveSettings(newSettings);
       Alert.alert('Success', 'Settings saved successfully!', [
         { text: 'OK', onPress: () => navigation.navigate('Chat') }
       ]);
@@ -114,6 +190,28 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const getModelId = (model: AIModel): string => {
+    if ('id' in model) {
+      return model.id; // OpenRouter model
+    }
+    return model.name; // Ollama model
+  };
+
+  const getModelName = (model: AIModel): string => {
+    return model.name;
+  };
+
+  const isOpenRouterModel = (model: AIModel): model is OpenRouterModel => {
+    return 'id' in model;
+  };
+
+  const filteredModels = models.filter(model => {
+    if (provider === 'openrouter' && showFreeOnly) {
+      return model.name.toLowerCase().includes('free');
+    }
+    return true;
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -122,7 +220,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           size={24}
           onPress={() => navigation.navigate('Chat')}
         />
-        <Title style={styles.headerTitle}>Settings</Title>
+        <Title style={styles.headerTitle}>Providers</Title>
         <View style={styles.headerPlaceholder} />
       </View>
       
@@ -133,116 +231,153 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card style={styles.card}>
             <Card.Content>
-              <Title>OpenRouter Settings</Title>
+              <Title>AI Provider</Title>
               <Paragraph style={styles.description}>
-                Configure your API key, model, and system prompt.
+                Choose your preferred AI provider and configure settings.
               </Paragraph>
 
-            <TextInput
-              label="API Key"
-              value={apiKey}
-              onChangeText={setApiKey}
-              mode="outlined"
-              secureTextEntry
-              style={styles.input}
-              placeholder="sk-or-..."
-            />
+              <SegmentedButtons
+                value={provider}
+                onValueChange={(value) => {
+                  setProvider(value as ProviderType);
+                  setModels([]);
+                  setSelectedModel('');
+                }}
+                buttons={[
+                  {
+                    value: 'openrouter',
+                    label: 'OpenRouter',
+                    icon: 'cloud',
+                  },
+                  {
+                    value: 'ollama',
+                    label: 'Ollama',
+                    icon: 'server',
+                  },
+                ]}
+                style={styles.providerSelector}
+              />
 
-            <TextInput
-              label="System Prompt"
-              value={systemPrompt}
-              onChangeText={setSystemPrompt}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              style={styles.input}
-              placeholder="You are a helpful AI assistant..."
-            />
+              {provider === 'openrouter' && (
+                <TextInput
+                  label="OpenRouter API Key"
+                  value={apiKey}
+                  onChangeText={setApiKey}
+                  mode="outlined"
+                  secureTextEntry
+                  style={styles.input}
+                  placeholder="sk-or-..."
+                />
+              )}
 
-            <View style={styles.buttonRow}>
-              <Button
+              {provider === 'ollama' && (
+                <>
+                  <TextInput
+                    label="Ollama Host"
+                    value={ollamaHost}
+                    onChangeText={setOllamaHost}
+                    mode="outlined"
+                    style={styles.input}
+                    placeholder="localhost"
+                  />
+                  <TextInput
+                    label="Ollama Port"
+                    value={ollamaPort}
+                    onChangeText={setOllamaPort}
+                    mode="outlined"
+                    style={styles.input}
+                    placeholder="11434"
+                    keyboardType="numeric"
+                  />
+                </>
+              )}
+
+              <TextInput
+                label="System Prompt"
+                value={systemPrompt}
+                onChangeText={setSystemPrompt}
                 mode="outlined"
-                onPress={testConnection}
-                loading={testingConnection}
-                disabled={!apiKey.trim() || testingConnection}
-                style={styles.testButton}
-              >
-                Test Connection
-              </Button>
-            </View>
+                multiline
+                numberOfLines={3}
+                style={styles.input}
+                placeholder="You are a helpful AI assistant..."
+              />
 
-            {loading && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" />
-                <Paragraph style={styles.loadingText}>Loading models...</Paragraph>
+              <View style={styles.buttonRow}>
+                <Button
+                  mode="outlined"
+                  onPress={testConnection}
+                  loading={testingConnection}
+                  disabled={testingConnection}
+                  style={styles.testButton}
+                >
+                  Test Connection
+                </Button>
               </View>
-            )}
 
-            {models.length > 0 && (
-              <View style={styles.modelSection}>
-                <View style={styles.modelHeader}>
-                  <Title style={styles.modelTitle}>Select Model</Title>
-                  <View style={styles.toggleContainer}>
-                    <Paragraph style={styles.toggleLabel}>Free only</Paragraph>
-                    <Switch
-                      value={showFreeOnly}
-                      onValueChange={setShowFreeOnly}
-                    />
-                  </View>
+              {loading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" />
+                  <Paragraph style={styles.loadingText}>Loading models...</Paragraph>
                 </View>
-                <ScrollView style={styles.modelList} showsVerticalScrollIndicator={false}>
-                  {models
-                    .filter(model => !showFreeOnly || model.name.toLowerCase().includes('free'))
-                    .map((model) => (
-                    <Card
-                      key={model.id}
-                      style={[
-                        styles.modelCard,
-                        selectedModel === model.id && styles.selectedModelCard,
-                      ]}
-                      onPress={() => setSelectedModel(model.id)}
-                    >
-                      <Card.Content>
-                        <View style={styles.modelNameRow}>
-                          <Paragraph style={styles.modelName}>{model.name}</Paragraph>
-                          {model.name.toLowerCase().includes('free') && (
-                            <Paragraph style={styles.freeTag}>FREE</Paragraph>
+              )}
+
+              {models.length > 0 && (
+                <View style={styles.modelSection}>
+                  <View style={styles.modelHeader}>
+                    <Title style={styles.modelTitle}>Select Model</Title>
+                    {provider === 'openrouter' && (
+                      <View style={styles.toggleContainer}>
+                        <Paragraph style={styles.toggleLabel}>Free only</Paragraph>
+                        <Switch
+                          value={showFreeOnly}
+                          onValueChange={setShowFreeOnly}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <ScrollView style={styles.modelList} showsVerticalScrollIndicator={false}>
+                    {filteredModels.map((model) => (
+                      <Card
+                        key={getModelId(model)}
+                        style={[
+                          styles.modelCard,
+                          selectedModel === getModelId(model) && styles.selectedModelCard,
+                        ]}
+                        onPress={() => setSelectedModel(getModelId(model))}
+                      >
+                        <Card.Content>
+                          <View style={styles.modelNameRow}>
+                            <Paragraph style={styles.modelName}>{getModelName(model)}</Paragraph>
+                            {isOpenRouterModel(model) && model.name.toLowerCase().includes('free') && (
+                              <Paragraph style={styles.freeTag}>FREE</Paragraph>
+                            )}
+                          </View>
+                          {isOpenRouterModel(model) && model.description && (
+                            <Paragraph style={styles.modelDescription}>
+                              {model.description.length > 100 
+                                ? `${model.description.substring(0, 100)}...` 
+                                : model.description}
+                            </Paragraph>
                           )}
-                        </View>
-                        {model.description && (
-                          <Paragraph style={styles.modelDescription}>
-                            {model.description.length > 100 
-                              ? `${model.description.substring(0, 100)}...` 
-                              : model.description}
-                          </Paragraph>
-                        )}
-                      </Card.Content>
-                    </Card>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+                        </Card.Content>
+                      </Card>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
-            <Button
-              mode="outlined"
-              onPress={() => navigation.navigate('Characters')}
-              style={styles.characterButton}
-              icon="account-group"
-            >
-              Manage Characters
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={saveSettings}
-              disabled={!apiKey.trim() || loading}
-              style={styles.saveButton}
-            >
-              Save Settings
-            </Button>
-          </Card.Content>
-        </Card>
-      </ScrollView>
+              <Button
+                mode="contained"
+                onPress={saveSettings}
+                disabled={loading}
+                style={styles.saveButton}
+              >
+                Save Settings
+              </Button>
+            </Card.Content>
+          </Card>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -284,6 +419,9 @@ const styles = StyleSheet.create({
   description: {
     marginBottom: 16,
     color: '#666',
+  },
+  providerSelector: {
+    marginBottom: 16,
   },
   input: {
     marginBottom: 16,
@@ -355,9 +493,6 @@ const styles = StyleSheet.create({
   modelDescription: {
     fontSize: 12,
     color: '#666',
-  },
-  characterButton: {
-    marginBottom: 8,
   },
   saveButton: {
     marginTop: 8,
