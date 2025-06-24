@@ -378,10 +378,10 @@ const styles = StyleSheet.create({
   tag: {
     marginRight: 6,
     marginBottom: 4,
-    height: 24,
+    height: 26,
   },
   tagText: {
-    fontSize: 10,
+    fontSize: 6,
   },
   actions: {
     flexDirection: 'column',

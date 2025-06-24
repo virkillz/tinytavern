@@ -45,25 +45,9 @@ export class CharacterCardService {
         return null;
       }
 
-      // Look for ccv3 first (V3 takes precedence)
-      const ccv3Index = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'ccv3');
-      
-      if (ccv3Index > -1) {
-        console.log('🎯 Found ccv3 character data chunk');
-        try {
-          const jsonStr = Buffer.from(textChunks[ccv3Index].text, 'base64').toString('utf8');
-          const characterCard = JSON.parse(jsonStr) as CharacterCard;
-          
-          if (this.validateCharacterCard(characterCard)) {
-            console.log('✅ Successfully extracted V3 character card!');
-            return characterCard;
-          }
-        } catch (e) {
-          console.log('❌ Failed to decode ccv3 character data:', e);
-        }
-      }
 
-      // Look for chara (V2)
+
+      // Look for chara (V2) first
       const charaIndex = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'chara');
       
       if (charaIndex > -1) {
@@ -71,6 +55,8 @@ export class CharacterCardService {
         try {
           const jsonStr = Buffer.from(textChunks[charaIndex].text, 'base64').toString('utf8');
           const characterCard = JSON.parse(jsonStr) as CharacterCard;
+
+          console.log('Character card:', characterCard);
           
           if (this.validateCharacterCard(characterCard)) {
             console.log('✅ Successfully extracted V2 character card!');
@@ -80,6 +66,26 @@ export class CharacterCardService {
           console.log('❌ Failed to decode chara character data:', e);
         }
       }
+
+      // Look for ccv3 first (V3 takes precedence)
+      const ccv3Index = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'ccv3');
+      
+      if (ccv3Index > -1) {
+        console.log('🎯 Found ccv3 character data chunk');
+        try {
+          const jsonStr = Buffer.from(textChunks[ccv3Index].text, 'base64').toString('utf8');
+          const characterCard = JSON.parse(jsonStr) as CharacterCard;
+
+          console.log('Character card:', characterCard);
+          
+          if (this.validateCharacterCard(characterCard)) {
+            console.log('✅ Successfully extracted V3 character card!');
+            return characterCard;
+          }
+        } catch (e) {
+          console.log('❌ Failed to decode ccv3 character data:', e);
+        }
+      }      
 
       console.error('❌ PNG metadata does not contain any character data.');
       return null;
@@ -769,8 +775,9 @@ export class CharacterCardService {
         const data = card.data;
         if (!data) return false;
         
+        // Only check if required fields exist, without strict type or content validation
         const requiredFields = ['name', 'description', 'personality', 'scenario', 'first_mes', 'mes_example'];
-        return requiredFields.every(field => typeof data[field] === 'string' && data[field].length > 0);
+        return requiredFields.every(field => field in data);
       }
       
       return false;
