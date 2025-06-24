@@ -1,4 +1,8 @@
-# PersonApp - AI Character Chat
+<div align="center">
+  <img src="assets/splash-icon.png" alt="TinyTavern Logo" width="200" />
+</div>
+
+# TinyTavern - AI Character Chat
 
 A free and open-source AI character chat application for mobile devices, designed as a portable version of SillyTavern. Create, customize, and chat with AI characters using your preferred LLM provider.
 
@@ -37,8 +41,8 @@ A free and open-source AI character chat application for mobile devices, designe
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/personapp.git
-   cd personapp
+   git clone https://github.com/yourusername/tinytavern.git
+   cd tinytavern
    ```
 
 2. **Install dependencies**
@@ -92,7 +96,7 @@ A free and open-source AI character chat application for mobile devices, designe
 
 2. **From SillyTavern:**
    - Export your existing characters as PNG files from SillyTavern
-   - Import them directly into PersonApp
+   - Import them directly into TinyTavern
 
 ### Creating Characters
 
@@ -118,7 +122,7 @@ src/
 ## Key Features Explained
 
 ### Character Cards
-PersonApp supports both Character Card v2 and v3 formats, ensuring compatibility with popular character sharing platforms and SillyTavern exports.
+TinyTavern supports both Character Card v2 and v3 formats, ensuring compatibility with popular character sharing platforms and SillyTavern exports.
 
 ### Chat History Separation
 Each character maintains its own conversation history, allowing you to have ongoing conversations with multiple characters without mixing contexts.
@@ -147,9 +151,9 @@ If you encounter any issues or have questions:
 - Check existing issues for solutions
 - Contribute to the documentation
 
-## Why PersonApp?
+## Why TinyTavern?
 
-While there are many paid "AI girlfriend" or "AI boyfriend" apps available, PersonApp provides:
+While there are many paid "AI girlfriend" or "AI boyfriend" apps available, TinyTavern provides:
 - **Complete freedom** - No subscription fees or hidden costs
 - **Privacy** - Your data stays with you
 - **Customization** - Full control over your AI characters
@@ -158,4 +162,4 @@ While there are many paid "AI girlfriend" or "AI boyfriend" apps available, Pers
 
 ---
 
-**PersonApp** - Your personal AI companion, completely free and open source.
+**TinyTavern** - Your personal AI companion, completely free and open source.

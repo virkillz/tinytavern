@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ChatApp",
-    "slug": "ChatApp",
+    "name": "TinyTavern",
+    "slug": "tinytavern",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
