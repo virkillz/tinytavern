@@ -7,6 +7,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TextInput,
   Button,
@@ -18,7 +19,9 @@ import {
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { StorageService } from '../utils/storage';
-import { Message, AppSettings } from '../types';
+import { CharacterStorageService } from '../services/characterStorage';
+import { CharacterCardService } from '../services/characterCard';
+import { Message, AppSettings, StoredCharacter } from '../types';
 
 interface Props {
   navigation: any;
@@ -29,6 +32,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState<StoredCharacter | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -48,6 +52,12 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       setSettings(savedSettings);
+      
+      // Load selected character if any
+      if (savedSettings.selectedCharacter) {
+        const character = await CharacterStorageService.getCharacterById(savedSettings.selectedCharacter);
+        setSelectedCharacter(character);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -87,12 +97,34 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       const service = new OpenRouterService(settings.apiKey);
-      const chatMessages = newMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      
+      // Prepare messages for API
+      let apiMessages: Array<{role: string, content: string}>;
+      
+      if (selectedCharacter) {
+        // Use character-based system prompt
+        const characterSystemMessages = CharacterCardService.generateSystemPrompt(selectedCharacter, 'User');
+        const userMessages = newMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+        
+        // Combine character system messages with user messages
+        apiMessages = [...characterSystemMessages, ...userMessages];
+      } else {
+        // Use regular system prompt
+        const chatMessages = newMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+        apiMessages = chatMessages;
+      }
 
-      const response = await service.sendMessage(settings.selectedModel, chatMessages);
+      const response = await service.sendMessage(
+        settings.selectedModel, 
+        apiMessages, 
+        selectedCharacter ? undefined : settings.systemPrompt
+      );
       
       if (response.choices && response.choices.length > 0) {
         const assistantMessage: Message = {
@@ -150,13 +182,26 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        style={styles.flex} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={styles.header}>
-        <Title style={styles.headerTitle}>Chat</Title>
+        <View style={styles.headerLeft}>
+          <Title style={styles.headerTitle}>
+            {selectedCharacter ? selectedCharacter.name : 'Chat'}
+          </Title>
+          {selectedCharacter && (
+            <Paragraph style={styles.headerSubtitle}>AI Character</Paragraph>
+          )}
+        </View>
         <View style={styles.headerButtons}>
+          <IconButton
+            icon="account-group"
+            size={24}
+            onPress={() => navigation.navigate('Characters')}
+          />
           <IconButton
             icon="cog"
             size={24}
@@ -172,9 +217,20 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
       {messages.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Paragraph style={styles.emptyText}>
-            Start a conversation by typing a message below.
-          </Paragraph>
+          {selectedCharacter ? (
+            <>
+              <Paragraph style={styles.emptyText}>
+                Say hello to {selectedCharacter.name}!
+              </Paragraph>
+              <Paragraph style={styles.characterDescription}>
+                {selectedCharacter.card.data.description}
+              </Paragraph>
+            </>
+          ) : (
+            <Paragraph style={styles.emptyText}>
+              Start a conversation by typing a message below.
+            </Paragraph>
+          )}
           {settings && (
             <Paragraph style={styles.modelInfo}>
               Using: {settings.selectedModel}
@@ -221,7 +277,8 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           <Paragraph style={styles.loadingText}>Thinking...</Paragraph>
         </View>
       )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -229,6 +286,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -242,8 +302,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  headerLeft: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 20,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: -4,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -258,6 +326,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
     marginBottom: 8,
+  },
+  characterDescription: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 8,
+    paddingHorizontal: 16,
   },
   modelInfo: {
     textAlign: 'center',

@@ -30,10 +30,16 @@ export class OpenRouterService {
     }
   }
 
-  async sendMessage(model: string, messages: Array<{ role: string; content: string }>): Promise<ChatResponse> {
+  async sendMessage(model: string, messages: Array<{ role: string; content: string }>, systemPrompt?: string): Promise<ChatResponse> {
     try {
       console.log('Sending message with model:', model);
       console.log('Messages:', messages);
+      console.log('System prompt:', systemPrompt);
+      
+      // Prepare messages with system prompt if provided
+      const allMessages = systemPrompt 
+        ? [{ role: 'system', content: systemPrompt }, ...messages]
+        : messages;
       
       const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
@@ -45,7 +51,7 @@ export class OpenRouterService {
         },
         body: JSON.stringify({
           model,
-          messages,
+          messages: allMessages,
           temperature: 0.7,
           max_tokens: 1000,
         }),

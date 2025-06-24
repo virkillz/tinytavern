@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TextInput,
   Button,
@@ -14,6 +15,7 @@ import {
   Title,
   Paragraph,
   ActivityIndicator,
+  IconButton,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { StorageService } from '../utils/storage';
@@ -27,6 +29,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [apiKey, setApiKey] = useState('');
   const [models, setModels] = useState<OpenRouterModel[]>([]);
   const [selectedModel, setSelectedModel] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
 
@@ -40,6 +43,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       if (settings) {
         setApiKey(settings.apiKey);
         setSelectedModel(settings.selectedModel);
+        setSystemPrompt(settings.systemPrompt || 'You are a helpful AI assistant.');
         if (settings.apiKey) {
           await fetchModels(settings.apiKey);
         }
@@ -97,6 +101,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       await StorageService.saveSettings({
         apiKey: apiKey.trim(),
         selectedModel: selectedModel || (models.length > 0 ? models[0].id : ''),
+        systemPrompt: systemPrompt.trim() || 'You are a helpful AI assistant.',
       });
       Alert.alert('Success', 'Settings saved successfully!', [
         { text: 'OK', onPress: () => navigation.navigate('Chat') }
@@ -108,17 +113,28 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title>OpenRouter Settings</Title>
-            <Paragraph style={styles.description}>
-              Enter your OpenRouter API key and select a model to start chatting.
-            </Paragraph>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          onPress={() => navigation.navigate('Chat')}
+        />
+        <Title style={styles.headerTitle}>Settings</Title>
+        <View style={styles.headerPlaceholder} />
+      </View>
+      
+      <KeyboardAvoidingView 
+        style={styles.flex} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title>OpenRouter Settings</Title>
+              <Paragraph style={styles.description}>
+                Configure your API key, model, and system prompt.
+              </Paragraph>
 
             <TextInput
               label="API Key"
@@ -128,6 +144,17 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
               secureTextEntry
               style={styles.input}
               placeholder="sk-or-..."
+            />
+
+            <TextInput
+              label="System Prompt"
+              value={systemPrompt}
+              onChangeText={setSystemPrompt}
+              mode="outlined"
+              multiline
+              numberOfLines={3}
+              style={styles.input}
+              placeholder="You are a helpful AI assistant..."
             />
 
             <View style={styles.buttonRow}>
@@ -179,6 +206,15 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             <Button
+              mode="outlined"
+              onPress={() => navigation.navigate('Characters')}
+              style={styles.characterButton}
+              icon="account-group"
+            >
+              Manage Characters
+            </Button>
+
+            <Button
               mode="contained"
               onPress={saveSettings}
               disabled={!apiKey.trim() || loading}
@@ -189,7 +225,8 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           </Card.Content>
         </Card>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -197,6 +234,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  flex: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
+  },
+  headerPlaceholder: {
+    width: 48,
   },
   scrollContent: {
     padding: 16,
@@ -250,6 +309,9 @@ const styles = StyleSheet.create({
   modelDescription: {
     fontSize: 12,
     color: '#666',
+  },
+  characterButton: {
+    marginBottom: 8,
   },
   saveButton: {
     marginTop: 8,
