@@ -2,6 +2,17 @@
 
 A free and open-source AI character chat application for mobile devices, designed as a portable version of SillyTavern. Create, customize, and chat with AI characters using your preferred LLM provider.
 
+## Screenshots
+
+<div align="center">
+  <img src="assets/screenshot/character_selection.PNG" alt="Character Selection" width="200" />
+  <img src="assets/screenshot/character_detail.PNG" alt="Character Details" width="200" />
+  <img src="assets/screenshot/edit_character.PNG" alt="Edit Character" width="200" />
+  <img src="assets/screenshot/provider_settings.PNG" alt="Provider Settings" width="200" />
+</div>
+
+*Character selection, character details, character editing, and provider settings screens*
+
 ## Features
 
 - 🤖 **AI Character Chat**: Engage in conversations with customizable AI characters

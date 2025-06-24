@@ -1,2 +1,0 @@
-1. Create character detail page where we can see character details. This page also have edit and delete options, other than big chat button.
-2. In character Management screen, remove edit and delete options from each character card since we have it in character detail page. Clicking on character card should navigate to character detail page instead of chat. Remove Import PNG button at the bottom and move next to create character button at the top as icon as well. Remove the tag in character card.
