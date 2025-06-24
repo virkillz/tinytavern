@@ -43,9 +43,17 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     loadSettings();
-    loadMessages();
     loadUserProfile();
   }, []);
+
+  // Load messages when selected character changes
+  useEffect(() => {
+    if (selectedCharacter) {
+      loadMessages(selectedCharacter.id);
+    } else {
+      setMessages([]);
+    }
+  }, [selectedCharacter]);
 
   const loadUserProfile = async () => {
     try {
@@ -90,9 +98,9 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (characterId?: string) => {
     try {
-      const savedMessages = await StorageService.getMessages();
+      const savedMessages = await StorageService.getMessages(characterId);
       setMessages(savedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -101,7 +109,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
   const saveMessages = async (newMessages: Message[]) => {
     try {
-      await StorageService.saveMessages(newMessages);
+      await StorageService.saveMessages(newMessages, selectedCharacter?.id);
     } catch (error) {
       console.error('Error saving messages:', error);
     }
@@ -218,9 +226,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const clearChat = async () => {
+    const characterName = selectedCharacter?.name || 'current character';
     Alert.alert(
       'Clear Chat',
-      'Are you sure you want to clear all messages?',
+      `Are you sure you want to clear all messages with ${characterName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -228,7 +237,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             setMessages([]);
-            await StorageService.clearMessages();
+            await StorageService.clearMessages(selectedCharacter?.id);
           },
         },
       ]
@@ -282,27 +291,34 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.headerLeft}
-          onPress={() => selectedCharacter && navigation.navigate('CharacterDetail', { characterId: selectedCharacter.id })}
-          disabled={!selectedCharacter}
-        >
-          {selectedCharacter && selectedCharacter.avatar ? (
-            <Avatar.Image
-              size={40}
-              source={selectedCharacter.avatar === 'default_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: selectedCharacter.avatar }}
-              style={styles.headerAvatar}
-            />
-          ) : (
-            <Avatar.Text
-              size={40}
-              label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
-              style={styles.headerAvatar}
-            />
-          )}
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <IconButton
+            icon="chevron-left"
+            size={24}
+            onPress={() => navigation.navigate('Characters')}
+            style={styles.chevronButton}
+          />
+          <TouchableOpacity 
+            onPress={() => selectedCharacter && navigation.navigate('CharacterDetail', { characterId: selectedCharacter.id })}
+            disabled={!selectedCharacter}
+          >
+            {selectedCharacter && selectedCharacter.avatar ? (
+              <Avatar.Image
+                size={40}
+                source={selectedCharacter.avatar === 'default_asset' 
+                  ? require('../../assets/default.png') 
+                  : { uri: selectedCharacter.avatar }}
+                style={styles.headerAvatar}
+              />
+            ) : (
+              <Avatar.Text
+                size={40}
+                label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
+                style={styles.headerAvatar}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
         
         <View style={styles.headerCenter}>
           <Title style={styles.headerTitle}>
@@ -476,8 +492,12 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   headerLeft: {
-    width: 60,
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  chevronButton: {
+    marginRight: -8,
   },
   headerCenter: {
     flex: 1,

@@ -48,18 +48,20 @@ export const StorageService = {
     }
   },
 
-  async saveMessages(messages: Message[]): Promise<void> {
+  async saveMessages(messages: Message[], characterId?: string): Promise<void> {
     try {
-      await AsyncStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+      const key = characterId ? `${MESSAGES_KEY}_${characterId}` : MESSAGES_KEY;
+      await AsyncStorage.setItem(key, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving messages:', error);
       throw error;
     }
   },
 
-  async getMessages(): Promise<Message[]> {
+  async getMessages(characterId?: string): Promise<Message[]> {
     try {
-      const messages = await AsyncStorage.getItem(MESSAGES_KEY);
+      const key = characterId ? `${MESSAGES_KEY}_${characterId}` : MESSAGES_KEY;
+      const messages = await AsyncStorage.getItem(key);
       return messages ? JSON.parse(messages) : [];
     } catch (error) {
       console.error('Error getting messages:', error);
@@ -67,11 +69,25 @@ export const StorageService = {
     }
   },
 
-  async clearMessages(): Promise<void> {
+  async clearMessages(characterId?: string): Promise<void> {
     try {
-      await AsyncStorage.removeItem(MESSAGES_KEY);
+      const key = characterId ? `${MESSAGES_KEY}_${characterId}` : MESSAGES_KEY;
+      await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error('Error clearing messages:', error);
+      throw error;
+    }
+  },
+
+  // Legacy method for backward compatibility - clears all chat history
+  async clearAllMessages(): Promise<void> {
+    try {
+      // Get all keys and remove message-related ones
+      const allKeys = await AsyncStorage.getAllKeys();
+      const messageKeys = allKeys.filter(key => key.startsWith(MESSAGES_KEY));
+      await AsyncStorage.multiRemove(messageKeys);
+    } catch (error) {
+      console.error('Error clearing all messages:', error);
       throw error;
     }
   },

@@ -16,6 +16,8 @@ import {
   Button,
   ActivityIndicator,
   Avatar,
+  TextInput,
+  Chip,
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,8 +32,12 @@ interface Props {
 
 export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
   const [characters, setCharacters] = useState<StoredCharacter[]>([]);
+  const [filteredCharacters, setFilteredCharacters] = useState<StoredCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,10 +45,54 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     }, [])
   );
 
+  // Filter characters based on search query and selected tags
+  useEffect(() => {
+    let filtered = characters;
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(character =>
+        character.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by selected tags
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(character =>
+        character.card.data.tags?.some(tag => selectedTags.includes(tag))
+      );
+    }
+
+    setFilteredCharacters(filtered);
+  }, [characters, searchQuery, selectedTags]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedTags([]);
+  };
+
   const loadCharacters = async () => {
     try {
       const storedCharacters = await CharacterStorageService.getAllCharacters();
       setCharacters(storedCharacters);
+      setFilteredCharacters(storedCharacters);
+      
+      // Extract all unique tags
+      const tags = new Set<string>();
+      storedCharacters.forEach(character => {
+        if (character.card.data.tags) {
+          character.card.data.tags.forEach(tag => tags.add(tag));
+        }
+      });
+      setAllTags(Array.from(tags).sort());
     } catch (error) {
       console.error('Error loading characters:', error);
       Alert.alert('Error', 'Failed to load characters');
@@ -255,13 +305,69 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       ) : (
-        <FlatList
-          data={characters}
-          renderItem={renderCharacterCard}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.contentContainer}>
+          {/* Search Bar */}
+          <TextInput
+            label="Search characters"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            mode="outlined"
+            style={styles.searchInput}
+            left={<TextInput.Icon icon="magnify" />}
+            right={searchQuery ? <TextInput.Icon icon="close" onPress={() => setSearchQuery('')} /> : undefined}
+          />
+
+          {/* Tag Filters */}
+          {allTags.length > 0 && (
+            <View style={styles.filterSection}>
+              <View style={styles.filterHeader}>
+                <Paragraph style={styles.filterTitle}>Filter by tags:</Paragraph>
+                {selectedTags.length > 0 && (
+                  <Button mode="text" onPress={clearFilters} compact>
+                    Clear filters
+                  </Button>
+                )}
+              </View>
+              <View style={styles.tagsContainer}>
+                {allTags.map((tag) => (
+                  <Chip
+                    key={tag}
+                    mode={selectedTags.includes(tag) ? 'flat' : 'outlined'}
+                    selected={selectedTags.includes(tag)}
+                    onPress={() => toggleTag(tag)}
+                    style={styles.tagChip}
+                  >
+                    {tag}
+                  </Chip>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Results Info */}
+          {(searchQuery || selectedTags.length > 0) && (
+            <Paragraph style={styles.resultsInfo}>
+              {filteredCharacters.length} of {characters.length} characters
+            </Paragraph>
+          )}
+
+          {/* Character List */}
+          <FlatList
+            data={filteredCharacters}
+            renderItem={renderCharacterCard}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.noResultsContainer}>
+                <Paragraph style={styles.noResultsText}>No characters match your search criteria</Paragraph>
+                <Button mode="text" onPress={clearFilters} style={styles.clearFiltersButton}>
+                  Clear filters
+                </Button>
+              </View>
+            }
+          />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -353,5 +459,52 @@ const styles = StyleSheet.create({
   },
   characterDescription: {
     color: '#666',
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  searchInput: {
+    margin: 16,
+  },
+  filterSection: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  filterTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tagChip: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  resultsInfo: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    fontSize: 12,
+    color: '#666',
+  },
+  noResultsContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 16,
+  },
+  clearFiltersButton: {
+    marginTop: 8,
   },
 });
