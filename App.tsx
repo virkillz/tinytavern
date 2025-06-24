@@ -11,6 +11,8 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 // Import character screens
 import { CharacterManagementScreen } from './src/screens/CharacterManagementScreen';
 import { CharacterEditScreen } from './src/screens/CharacterEditScreen';
+import { CharacterDetailScreen } from './src/screens/CharacterDetailScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +33,8 @@ export default function App() {
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Characters" component={CharacterManagementScreen} />
               <Stack.Screen name="CharacterEdit" component={CharacterEditScreen} />
+              <Stack.Screen name="CharacterDetail" component={CharacterDetailScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </PaperProvider>

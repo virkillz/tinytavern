@@ -35,13 +35,24 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [selectedCharacter, setSelectedCharacter] = useState<StoredCharacter | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name: string; avatar?: string } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     loadSettings();
     loadMessages();
+    loadUserProfile();
   }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const profile = await StorageService.getUserProfile();
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -168,21 +179,40 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <Card style={[
-      styles.messageCard,
-      item.role === 'user' ? styles.userMessage : styles.assistantMessage
-    ]}>
-      <Card.Content>
-        <Paragraph style={[
-          styles.messageText,
-          item.role === 'user' ? styles.userMessageText : styles.assistantMessageText
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isUser = item.role === 'user';
+    const displayName = isUser ? (userProfile?.name || 'You') : (selectedCharacter?.name || 'Assistant');
+    const avatarSource = isUser ? userProfile?.avatar : selectedCharacter?.avatar;
+
+    return (
+      <View style={[
+        styles.messageContainer,
+        isUser ? styles.userMessageContainer : styles.assistantMessageContainer
+      ]}>
+        <View style={styles.messageHeader}>
+          {avatarSource ? (
+            <Avatar.Image size={32} source={{ uri: avatarSource }} />
+          ) : (
+            <Avatar.Text size={32} label={displayName.charAt(0)} />
+          )}
+          <Paragraph style={styles.messageName}>{displayName}</Paragraph>
+        </View>
+        <Card style={[
+          styles.messageCard,
+          isUser ? styles.userMessage : styles.assistantMessage
         ]}>
-          {item.content}
-        </Paragraph>
-      </Card.Content>
-    </Card>
-  );
+          <Card.Content>
+            <Paragraph style={[
+              styles.messageText,
+              isUser ? styles.userMessageText : styles.assistantMessageText
+            ]}>
+              {item.content}
+            </Paragraph>
+          </Card.Content>
+        </Card>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -225,6 +255,14 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
               />
             }
           >
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Profile');
+              }}
+              title="Profile"
+              leadingIcon="account"
+            />
             <Menu.Item
               onPress={() => {
                 setMenuVisible(false);
@@ -337,7 +375,9 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" />
-          <Paragraph style={styles.loadingText}>Thinking...</Paragraph>
+          <Paragraph style={styles.loadingText}>
+            {selectedCharacter?.name || 'Assistant'} is writing...
+          </Paragraph>
         </View>
       )}
       </KeyboardAvoidingView>
@@ -440,16 +480,34 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: 16,
   },
+  messageContainer: {
+    marginBottom: 16,
+    maxWidth: '85%',
+  },
+  userMessageContainer: {
+    alignSelf: 'flex-end',
+  },
+  assistantMessageContainer: {
+    alignSelf: 'flex-start',
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  messageName: {
+    marginLeft: 8,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+  },
   messageCard: {
-    marginBottom: 8,
-    maxWidth: '80%',
+    marginLeft: 40,
   },
   userMessage: {
-    alignSelf: 'flex-end',
     backgroundColor: '#2196f3',
   },
   assistantMessage: {
-    alignSelf: 'flex-start',
     backgroundColor: '#fff',
   },
   messageText: {
@@ -473,6 +531,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
+    borderRadius: 2,
     alignSelf: 'flex-end',
   },
   loadingContainer: {

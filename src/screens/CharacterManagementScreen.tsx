@@ -15,8 +15,6 @@ import {
   Card,
   Button,
   ActivityIndicator,
-  Chip,
-  FAB,
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -159,7 +157,7 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderCharacterCard = ({ item }: { item: StoredCharacter }) => (
     <Card style={styles.characterCard}>
-      <TouchableOpacity onPress={() => selectCharacter(item)}>
+      <TouchableOpacity onPress={() => navigation.navigate('CharacterDetail', { characterId: item.id })}>
         <View style={styles.cardContent}>
           {item.avatar && (
             <Image source={{ uri: item.avatar }} style={styles.avatar} />
@@ -169,32 +167,6 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
             <Paragraph style={styles.characterDescription} numberOfLines={2}>
               {item.card.data.description}
             </Paragraph>
-            {item.card.data.tags && item.card.data.tags.length > 0 && (
-              <View style={styles.tagsContainer}>
-                {item.card.data.tags.slice(0, 3).map((tag, index) => (
-                  <Chip key={index} style={styles.tag} textStyle={styles.tagText}>
-                    {tag}
-                  </Chip>
-                ))}
-                {item.card.data.tags.length > 3 && (
-                  <Chip style={styles.tag} textStyle={styles.tagText}>
-                    +{item.card.data.tags.length - 3}
-                  </Chip>
-                )}
-              </View>
-            )}
-          </View>
-          <View style={styles.actions}>
-            <IconButton
-              icon="pencil"
-              size={20}
-              onPress={() => navigation.navigate('CharacterEdit', { characterId: item.id })}
-            />
-            <IconButton
-              icon="delete"
-              size={20}
-              onPress={() => deleteCharacter(item)}
-            />
           </View>
         </View>
       </TouchableOpacity>
@@ -234,11 +206,19 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.goBack()}
         />
         <Title style={styles.headerTitle}>Characters</Title>
-        <IconButton
-          icon="plus"
-          size={24}
-          onPress={createNewCharacter}
-        />
+        <View style={styles.headerActions}>
+          <IconButton
+            icon="upload"
+            size={24}
+            onPress={importCharacterCard}
+            disabled={importing}
+          />
+          <IconButton
+            icon="plus"
+            size={24}
+            onPress={createNewCharacter}
+          />
+        </View>
       </View>
 
       {characters.length === 0 ? (
@@ -275,15 +255,6 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      <FAB
-        icon="upload"
-        style={styles.fab}
-        onPress={importCharacterCard}
-        loading={importing}
-        disabled={importing}
-        label="Import PNG"
-      />
     </SafeAreaView>
   );
 };
@@ -308,9 +279,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
+    flex: 1,
   },
-  headerPlaceholder: {
-    width: 48,
+  headerActions: {
+    flexDirection: 'row',
   },
   loadingContainer: {
     flex: 1,
@@ -369,28 +341,5 @@ const styles = StyleSheet.create({
   },
   characterDescription: {
     color: '#666',
-    marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tag: {
-    marginRight: 6,
-    marginBottom: 4,
-    height: 26,
-  },
-  tagText: {
-    fontSize: 6,
-  },
-  actions: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 });
