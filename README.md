@@ -13,9 +13,9 @@ I vibe code this app in a few hours, so it is not really well polished. Not also
 ## Screenshots
 
 <div align="center">
-  <img src="assets/screenshot/character_selection.PNG" alt="Character Selection" width="200" />
-  <img src="assets/screenshot/character_detail.PNG" alt="Character Details" width="200" />
-  <img src="assets/screenshot/edit_character.PNG" alt="Edit Character" width="200" />
+  <img src="assets/screenshot/home_screen.PNG" alt="Home Screen" width="200" />
+  <img src="assets/screenshot/character_chat.PNG" alt="Character Chat" width="200" />
+  <img src="assets/screenshot/story_mode.PNG" alt="Story Mode" width="200" />
   <img src="assets/screenshot/provider_settings.PNG" alt="Provider Settings" width="200" />
 </div>
 
