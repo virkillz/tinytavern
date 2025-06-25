@@ -2,13 +2,13 @@
   <img src="assets/splash-icon.png" alt="TinyTavern Logo" width="200" />
 </div>
 
-# TinyTavern - AI Character Chat
+# TinyTavern - AI Character Chat & Interactive Stories
 
-A free and open-source AI character chat application for mobile devices, designed as a portable version of SillyTavern. Create, customize, and chat with AI characters using your preferred LLM provider.
+A free and open-source AI character chat and interactive storytelling application for mobile devices. Chat with AI characters and experience immersive interactive books powered by your preferred LLM provider.
 
-I like the idea of chat with my SillyTavern characters on the go. Connect into my self hosted Ollama server or OpenRouter API.
+Experience the magic of AI-powered conversations and interactive storytelling on your mobile device. Chat with your favorite SillyTavern characters and dive into choose-your-own-adventure style books where every decision shapes the story.
 
-I vibe code this app in a few hours, so it is not really well polished. Not also published into app store/play store yet. But you can compile or try on your device using Expo Go app. Enjoy.
+Connect to your self-hosted Ollama server or use OpenRouter API for the ultimate portable AI experience.
 
 ## Screenshots
 
@@ -23,15 +23,32 @@ _Character selection, character details, character editing, and provider setting
 
 ## Features
 
-- 🤖 **AI Character Chat**: Engage in conversations with customizable AI characters
-- 📱 **Cross-Platform**: Available for iOS, Android, and Web
-- 🎭 **Character Management**: Create, import, and manage AI characters
-- 🔄 **Character Card Support**: Import/export Character Card v2 and v3 formats (PNG)
-- 🏷️ **Search & Filter**: Find characters by name and filter by tags
-- 💬 **Per-Character Chat History**: Separate conversation history for each character
-- 🌐 **Multiple LLM Providers**: Support for OpenRouter and Ollama
-- 🆓 **Completely Free**: No subscriptions, no hidden costs
-- 🔓 **Open Source**: MIT licensed
+### 🤖 AI Character Chat
+- Engage in conversations with customizable AI characters
+- Character Card v2/v3 support (PNG import/export)
+- Per-character conversation history
+- Variable replacement system ({{char}}, {{user}})
+- Search and filter characters by name and tags
+
+### 📚 Interactive Books
+- AI-powered choose-your-own-adventure stories
+- Convert character cards into interactive books
+- Page-style reading interface with book covers
+- Template variables for personalized storytelling
+- Story continuation based on your choices
+
+### 🛠️ Technical Features
+- **Cross-Platform**: iOS, Android, and Web support
+- **Multiple LLM Providers**: OpenRouter and Ollama integration
+- **Beautiful UI**: Book-inspired theme with serif fonts and warm colors
+- **Profile System**: Personalized experience with user profiles
+- **Data Management**: Local storage with AsyncStorage
+
+### 🆓 Open & Free
+- Completely free with no subscriptions
+- Open source (MIT licensed)
+- No data collection or tracking
+- Self-hosted option available
 
 ## Getting Started
 
@@ -92,17 +109,19 @@ _Character selection, character details, character editing, and provider setting
 
 #### Ollama
 
-1. Install [Ollama](https://ollama.ai/) on your local machine
+1. Install [Ollama](https://ollama.ai/) on your local machine or server
 2. Run Ollama server: `ollama serve`
-3. In the app, configure Ollama host and port (default: localhost:11434)
-4. Pull desired models: `ollama pull model-name`
+3. In the app, configure Ollama host (e.g., `localhost` or `https://your-domain.com`)
+4. Set port only if needed (leave empty for HTTPS domains)
+5. Pull desired models: `ollama pull model-name`
+
+**Note**: For cloud deployments, just enter your domain (like `https://ollama.yourdomain.com`) and leave the port field empty.
 
 ## Character Management
 
 ### Importing Characters
 
 1. **From Character Card websites:**
-
    - Visit sites like [Character Tavern](https://character-tavern.com/)
    - Download character cards as PNG files
    - Import them using the upload button in the Characters screen
@@ -111,41 +130,101 @@ _Character selection, character details, character editing, and provider setting
    - Export your existing characters as PNG files from SillyTavern
    - Import them directly into TinyTavern
 
+3. **Dual Purpose Import:**
+   - Character cards can be imported as characters OR interactive books
+   - Same PNG files work for both features
+
 ### Creating Characters
 
 Create custom AI characters with:
-
 - Name and description
 - Personality traits
 - Scenario/background
-- First message
+- First message (supports {{char}} and {{user}} variables)
 - Custom avatar
 - Tags for organization
+
+## Interactive Books
+
+### Creating Books
+
+1. **Manual Creation:**
+   - Create books from scratch with title, author, genre
+   - Write opening scenarios and first pages
+   - Add book covers and descriptions
+
+2. **From Character Cards:**
+   - Import any character card PNG as an interactive book
+   - Character data automatically converts to book format:
+     - Character name → Book title
+     - Creator → Author
+     - First message → First page
+     - Scenario → Book setting
+
+### Book Features
+
+- **Variable System**: Use {{user}}, {{char}}, {{book}}, {{author}} in your content
+- **Page-Style Interface**: Reading experience mimics real books
+- **Choice-Driven**: Your decisions shape the story progression
+- **Book Covers**: Visual covers enhance the reading experience
+- **Persistent Progress**: Each book maintains its own story progression
 
 ## App Structure
 
 ```
 src/
 ├── screens/           # Application screens
+│   ├── HomeScreen.tsx           # Main landing page
+│   ├── ChatScreen.tsx           # Character conversations
+│   ├── BookChatScreen.tsx       # Interactive book reading
+│   ├── CharacterManagementScreen.tsx
+│   ├── BookManagementScreen.tsx
+│   └── SettingsScreen.tsx       # Provider configuration
 ├── services/          # API and storage services
+│   ├── characterCard.ts         # Character card processing
+│   ├── bookStorage.ts          # Book data management
+│   ├── openrouter.ts           # OpenRouter API
+│   └── ollama.ts               # Ollama API
 ├── utils/            # Utility functions
+│   ├── variableReplacement.ts  # Template variables
+│   └── storage.ts              # AsyncStorage wrapper
 ├── types/            # TypeScript type definitions
+├── styles/           # Theme and styling
+│   └── theme.ts               # Book-inspired theme
 └── components/       # Reusable components
 ```
 
 ## Key Features Explained
 
-### Character Cards
+### Character Cards & Dual-Purpose Import
 
-TinyTavern supports both Character Card v2 and v3 formats, ensuring compatibility with popular character sharing platforms and SillyTavern exports.
+TinyTavern supports Character Card v2 and v3 formats with a unique twist - the same PNG character card can be imported as either:
+- **Character**: For traditional AI conversations
+- **Interactive Book**: For story-driven experiences
 
-### Chat History Separation
+This innovative approach means your existing character collection doubles as a library of interactive stories.
 
-Each character maintains its own conversation history, allowing you to have ongoing conversations with multiple characters without mixing contexts.
+### Variable Replacement System
 
-### Search and Filtering
+Both characters and books support template variables:
+- `{{char}}` - Character/protagonist name
+- `{{user}}` - Reader's name
+- `{{book}}` - Book title (books only)
+- `{{author}}` - Author name (books only)
 
-Quickly find characters using the search bar or filter by tags. Characters can be organized with custom tags for better management.
+### Separate Data Management
+
+- **Characters**: Individual chat histories per character
+- **Books**: Story progression tracking with choice history
+- **Profile System**: User preferences enhance personalization
+
+### Beautiful Book Theme
+
+The app features a carefully designed book-inspired interface:
+- Warm amber color palette
+- Serif typography for readability
+- Page-style layouts for books
+- Elegant shadows and borders
 
 ## Contributing
 
@@ -171,14 +250,26 @@ If you encounter any issues or have questions:
 
 ## Why TinyTavern?
 
-While there are many paid "AI girlfriend" or "AI boyfriend" apps available, TinyTavern provides:
+While there are many paid AI chat apps available, TinyTavern offers something unique:
 
+### 💝 For Character Chat Enthusiasts
 - **Complete freedom** - No subscription fees or hidden costs
-- **Privacy** - Your data stays with you
-- **Customization** - Full control over your AI characters
-- **Compatibility** - Works with existing character cards and formats
-- **Transparency** - Open source code you can trust
+- **Privacy first** - Your data stays with you
+- **Full compatibility** - Works with existing SillyTavern characters
+- **Unlimited conversations** - No message limits or restrictions
+
+### 📖 For Interactive Story Lovers
+- **Innovative dual-purpose** - Turn character cards into interactive books
+- **AI-powered storytelling** - Every choice creates unique narratives
+- **Portable reading** - Take your stories anywhere
+- **Community driven** - Share and discover new interactive experiences
+
+### 🔓 For Everyone
+- **Open source transparency** - Code you can trust and modify
+- **Cross-platform** - Works on all devices
+- **Self-hostable** - Complete control over your AI infrastructure
+- **No vendor lock-in** - Your data, your choice
 
 ---
 
-**TinyTavern** - Your personal AI companion, completely free and open source.
+**TinyTavern** - Your personal AI companion and interactive storyteller, completely free and open source.
