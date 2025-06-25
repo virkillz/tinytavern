@@ -49,6 +49,7 @@ export interface AppSettings {
   selectedModel: string;
   systemPrompt: string;
   selectedCharacter?: string;
+  selectedBook?: string;
 }
 
 export interface ChatResponse {
@@ -139,6 +140,35 @@ export interface StoredCharacter {
   name: string;
   card: CharacterCard;
   avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Interactive Book Interfaces - Compatible with Character Card structure
+export interface BookData {
+  title: string;        // Maps from character 'name'
+  description: string;  // Maps from character 'description'
+  author: string;       // Maps from character 'creator'
+  genre?: string;       // Optional field for book categorization
+  scenario: string;     // Maps from character 'scenario'
+  first_page: string;   // Maps from character 'first_mes'
+  tags?: string[];      // Maps from character 'tags'
+  cover_image?: string; // Optional cover image
+  creator_notes?: string; // Maps from character 'creator_notes'
+  summary?: string;     // Optional summary field
+}
+
+export interface BookCard {
+  spec: 'interactive_book_v1';
+  spec_version: '1.0';
+  data: BookData;
+}
+
+export interface StoredBook {
+  id: string;
+  title: string;
+  card: BookCard;
+  cover?: string;
   createdAt: Date;
   updatedAt: Date;
 }

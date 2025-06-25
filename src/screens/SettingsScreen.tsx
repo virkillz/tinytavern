@@ -377,6 +377,44 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
               </Button>
             </Card.Content>
           </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title>Navigation</Title>
+              <Paragraph style={styles.description}>
+                Quick access to main features.
+              </Paragraph>
+              
+              <View style={styles.navigationButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('Characters')}
+                  style={styles.navButton}
+                  icon="account-group"
+                >
+                  Manage Characters
+                </Button>
+                
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('Books')}
+                  style={styles.navButton}
+                  icon="book-multiple"
+                >
+                  Interactive Books
+                </Button>
+                
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('Profile')}
+                  style={styles.navButton}
+                  icon="account"
+                >
+                  Profile
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -496,5 +534,11 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 8,
+  },
+  navigationButtons: {
+    gap: 12,
+  },
+  navButton: {
+    marginBottom: 8,
   },
 });

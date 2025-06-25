@@ -26,6 +26,8 @@ import { StorageService } from '../utils/storage';
 import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
 import { Message, AppSettings, StoredCharacter } from '../types';
+import { BookColors, BookTypography } from '../styles/theme';
+import { replaceCharacterVariables } from '../utils/variableReplacement';
 
 interface Props {
   navigation: any;
@@ -62,12 +64,18 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       // If no saved messages and we have a character with first_mes, add it
       if (savedMessages.length === 0 && selectedCharacter?.card.data.first_mes) {
         const userName = userProfile?.name || 'User';
+        
+        // Use variable replacement utility for characters
+        const processedContent = replaceCharacterVariables(
+          selectedCharacter.card.data.first_mes,
+          selectedCharacter.name,
+          userName
+        );
+        
         const firstMessage: Message = {
           id: 'first_message',
           role: 'assistant',
-          content: selectedCharacter.card.data.first_mes
-            .replace(/\{\{char\}\}/gi, selectedCharacter.name)
-            .replace(/\{\{user\}\}/gi, userName),
+          content: processedContent,
           timestamp: new Date(),
         };
         
@@ -369,6 +377,14 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             <Menu.Item
               onPress={() => {
                 setMenuVisible(false);
+                navigation.navigate('Home');
+              }}
+              title="Home"
+              leadingIcon="home"
+            />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
                 navigation.navigate('Profile');
               }}
               title="Profile"
@@ -381,6 +397,14 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
               }}
               title="Manage Characters"
               leadingIcon="account-group"
+            />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Books');
+              }}
+              title="Interactive Books"
+              leadingIcon="book-multiple"
             />
             <Menu.Item
               onPress={() => {
@@ -501,7 +525,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BookColors.background,
   },
   flex: {
     flex: 1,
@@ -512,12 +536,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -542,6 +568,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurface,
   },
   emptyContainer: {
     flex: 1,

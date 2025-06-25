@@ -22,18 +22,18 @@ import {
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
-import { CharacterStorageService } from '../services/characterStorage';
+import { BookStorageService } from '../services/bookStorage';
 import { CharacterCardService } from '../services/characterCard';
 import { PNGDebugger } from '../utils/debugPNG';
-import { StoredCharacter } from '../types';
+import { StoredBook } from '../types';
 
 interface Props {
   navigation: any;
 }
 
-export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
-  const [characters, setCharacters] = useState<StoredCharacter[]>([]);
-  const [filteredCharacters, setFilteredCharacters] = useState<StoredCharacter[]>([]);
+export const BookManagementScreen: React.FC<Props> = ({ navigation }) => {
+  const [books, setBooks] = useState<StoredBook[]>([]);
+  const [filteredBooks, setFilteredBooks] = useState<StoredBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,30 +42,31 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      loadCharacters();
+      loadBooks();
     }, [])
   );
 
-  // Filter characters based on search query and selected tags
+  // Filter books based on search query and selected tags
   useEffect(() => {
-    let filtered = characters;
+    let filtered = books;
 
     // Filter by search query
     if (searchQuery.trim()) {
-      filtered = filtered.filter(character =>
-        character.name.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(book =>
+        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        book.card.data.author.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Filter by selected tags
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(character =>
-        character.card.data.tags?.some(tag => selectedTags.includes(tag))
+      filtered = filtered.filter(book =>
+        book.card.data.tags?.some(tag => selectedTags.includes(tag))
       );
     }
 
-    setFilteredCharacters(filtered);
-  }, [characters, searchQuery, selectedTags]);
+    setFilteredBooks(filtered);
+  }, [books, searchQuery, selectedTags]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -80,29 +81,29 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     setSelectedTags([]);
   };
 
-  const loadCharacters = async () => {
+  const loadBooks = async () => {
     try {
-      const storedCharacters = await CharacterStorageService.getAllCharacters();
-      setCharacters(storedCharacters);
-      setFilteredCharacters(storedCharacters);
+      const storedBooks = await BookStorageService.getAllBooks();
+      setBooks(storedBooks);
+      setFilteredBooks(storedBooks);
       
       // Extract all unique tags
       const tags = new Set<string>();
-      storedCharacters.forEach(character => {
-        if (character.card.data.tags) {
-          character.card.data.tags.forEach(tag => tags.add(tag));
+      storedBooks.forEach(book => {
+        if (book.card.data.tags) {
+          book.card.data.tags.forEach(tag => tags.add(tag));
         }
       });
       setAllTags(Array.from(tags).sort());
     } catch (error) {
-      console.error('Error loading characters:', error);
-      Alert.alert('Error', 'Failed to load characters');
+      console.error('Error loading books:', error);
+      Alert.alert('Error', 'Failed to load books');
     } finally {
       setLoading(false);
     }
   };
 
-  const importCharacterCard = async () => {
+  const importBookCard = async () => {
     try {
       setImporting(true);
 
@@ -119,16 +120,16 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
       const imageUri = result.assets[0].uri;
       
       // Debug the PNG file first
-      console.log('🔧 Debugging PNG file...');
+      console.log('🔧 Debugging PNG file for book import...');
       await PNGDebugger.debugPNGFile(imageUri);
       
-      // Extract character card from PNG
+      // Extract character card from PNG (which will be converted to book)
       const characterCard = await CharacterCardService.extractCharacterFromPNG(imageUri);
       
       if (!characterCard) {
         Alert.alert(
           'Invalid File', 
-          'This PNG file does not contain valid character card metadata. Check the console for detailed debug information.',
+          'This PNG file does not contain valid character card metadata that can be converted to a book. Check the console for detailed debug information.',
           [
             { 
               text: 'Debug Info', 
@@ -146,28 +147,38 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       if (!CharacterCardService.validateCharacterCard(characterCard)) {
-        Alert.alert('Invalid Character Card', 'The character card data is incomplete or invalid.');
+        Alert.alert('Invalid Character Card', 'The character card data is incomplete or invalid for book conversion.');
         return;
       }
 
-      // Import character
-      const importedCharacter = await CharacterStorageService.importCharacterFromPNG(imageUri, characterCard);
+      // Import character card as book
+      const importedBook = await BookStorageService.importBookFromCharacterPNG(imageUri, characterCard);
       
-      Alert.alert('Success', `Character "${importedCharacter.name}" imported successfully!`);
-      await loadCharacters();
+      Alert.alert(
+        'Success', 
+        `Character "${characterCard.data.name}" has been successfully converted to interactive book "${importedBook.title}"!`,
+        [
+          {
+            text: 'View Book',
+            onPress: () => navigation.navigate('BookDetail', { bookId: importedBook.id })
+          },
+          { text: 'OK' }
+        ]
+      );
+      await loadBooks();
       
     } catch (error) {
-      console.error('Error importing character:', error);
-      Alert.alert('Error', 'Failed to import character card');
+      console.error('Error importing book from character card:', error);
+      Alert.alert('Error', 'Failed to import character card as book. Make sure the PNG contains valid character card data.');
     } finally {
       setImporting(false);
     }
   };
 
-  const deleteCharacter = async (character: StoredCharacter) => {
+  const deleteBook = async (book: StoredBook) => {
     Alert.alert(
-      'Delete Character',
-      `Are you sure you want to delete "${character.name}"?`,
+      'Delete Book',
+      `Are you sure you want to delete "${book.title}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -175,11 +186,11 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await CharacterStorageService.deleteCharacter(character.id);
-              await loadCharacters();
-              Alert.alert('Success', 'Character deleted successfully');
+              await BookStorageService.deleteBook(book.id);
+              await loadBooks();
+              Alert.alert('Success', 'Book deleted successfully');
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete character');
+              Alert.alert('Error', 'Failed to delete book');
             }
           },
         },
@@ -187,53 +198,57 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const selectCharacter = async (character: StoredCharacter) => {
+  const selectBook = async (book: StoredBook) => {
     try {
-      // Save selected character to settings
+      // Save selected book to settings
       const { StorageService } = require('../utils/storage');
       const settings = await StorageService.getSettings();
       if (settings) {
         await StorageService.saveSettings({
           ...settings,
-          selectedCharacter: character.id,
+          selectedBook: book.id,
         });
       }
       
-      Alert.alert('Character Selected', `${character.name} is now active for chat!`, [
-        { text: 'OK', onPress: () => navigation.navigate('Chat') }
+      Alert.alert('Book Selected', `"${book.title}" is now active for reading!`, [
+        { text: 'OK', onPress: () => navigation.navigate('BookChat') }
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to select character');
+      Alert.alert('Error', 'Failed to select book');
     }
   };
 
-  const renderCharacterCard = ({ item }: { item: StoredCharacter }) => (
-    <Card style={styles.characterCard}>
-      <TouchableOpacity onPress={() => navigation.navigate('CharacterDetail', { characterId: item.id })}>
+  const renderBookCard = ({ item }: { item: StoredBook }) => (
+    <Card style={styles.bookCard}>
+      <TouchableOpacity onPress={() => navigation.navigate('BookDetail', { bookId: item.id })}>
         <View style={styles.cardContent}>
-          {item.avatar ? (
+          {item.cover ? (
             <Image 
-              source={item.avatar === 'default_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: item.avatar }} 
-              style={styles.avatar} 
+              source={item.cover === 'default_book_asset' 
+                ? require('../../assets/default.png') // Using default image for now
+                : { uri: item.cover }} 
+              style={styles.coverImage} 
             />
           ) : (
-            <Avatar.Icon size={60} icon="account" style={styles.avatarPlaceholder} />
+            <Avatar.Icon size={60} icon="book" style={styles.coverPlaceholder} />
           )}
-          <View style={styles.characterInfo}>
-            <Title style={styles.characterName}>{item.name}</Title>
-            <Paragraph style={styles.characterDescription} numberOfLines={2}>
+          <View style={styles.bookInfo}>
+            <Title style={styles.bookTitle}>{item.title}</Title>
+            <Paragraph style={styles.bookAuthor}>by {item.card.data.author}</Paragraph>
+            <Paragraph style={styles.bookDescription} numberOfLines={2}>
               {item.card.data.description}
             </Paragraph>
+            {item.card.data.genre && (
+              <Paragraph style={styles.bookGenre}>Genre: {item.card.data.genre}</Paragraph>
+            )}
           </View>
         </View>
       </TouchableOpacity>
     </Card>
   );
 
-  const createNewCharacter = () => {
-    navigation.navigate('CharacterEdit', { characterId: null });
+  const createNewBook = () => {
+    navigation.navigate('BookEdit', { bookId: null });
   };
 
   if (loading) {
@@ -245,12 +260,12 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
             size={24}
             onPress={() => navigation.goBack()}
           />
-          <Title style={styles.headerTitle}>Characters</Title>
+          <Title style={styles.headerTitle}>Interactive Books</Title>
           <View style={styles.headerPlaceholder} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
-          <Paragraph style={styles.loadingText}>Loading characters...</Paragraph>
+          <Paragraph style={styles.loadingText}>Loading books...</Paragraph>
         </View>
       </SafeAreaView>
     );
@@ -264,44 +279,44 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           size={24}
           onPress={() => navigation.navigate('Home')}
         />
-        <Title style={styles.headerTitle}>Characters</Title>
+        <Title style={styles.headerTitle}>Interactive Books</Title>
         <View style={styles.headerActions}>
           <IconButton
             icon="upload"
             size={24}
-            onPress={importCharacterCard}
+            onPress={importBookCard}
             disabled={importing}
           />
           <IconButton
             icon="plus"
             size={24}
-            onPress={createNewCharacter}
+            onPress={createNewBook}
           />
         </View>
       </View>
 
-      {characters.length === 0 ? (
+      {books.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Paragraph style={styles.emptyText}>No characters yet!</Paragraph>
+          <Paragraph style={styles.emptyText}>No books yet!</Paragraph>
           <Paragraph style={styles.emptySubtext}>
-            Import character cards or create new ones to get started.
+            Import book cards or create new interactive stories to get started.
           </Paragraph>
           <View style={styles.emptyActions}>
             <Button
               mode="contained"
-              onPress={importCharacterCard}
+              onPress={importBookCard}
               loading={importing}
               disabled={importing}
               style={styles.emptyButton}
             >
-              Import Character Card
+              Import Character Card as Book
             </Button>
             <Button
               mode="outlined"
-              onPress={createNewCharacter}
+              onPress={createNewBook}
               style={styles.emptyButton}
             >
-              Create New Character
+              Create New Book
             </Button>
           </View>
         </View>
@@ -309,7 +324,7 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.contentContainer}>
           {/* Search Bar */}
           <TextInput
-            label="Search characters"
+            label="Search books"
             value={searchQuery}
             onChangeText={setSearchQuery}
             mode="outlined"
@@ -353,20 +368,20 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
           {/* Results Info */}
           {(searchQuery || selectedTags.length > 0) && (
             <Paragraph style={styles.resultsInfo}>
-              {filteredCharacters.length} of {characters.length} characters
+              {filteredBooks.length} of {books.length} books
             </Paragraph>
           )}
 
-          {/* Character List */}
+          {/* Book List */}
           <FlatList
-            data={filteredCharacters}
-            renderItem={renderCharacterCard}
+            data={filteredBooks}
+            renderItem={renderBookCard}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.noResultsContainer}>
-                <Paragraph style={styles.noResultsText}>No characters match your search criteria</Paragraph>
+                <Paragraph style={styles.noResultsText}>No books match your search criteria</Paragraph>
                 <Button mode="text" onPress={clearFilters} style={styles.clearFiltersButton}>
                   Clear filters
                 </Button>
@@ -404,6 +419,9 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
   },
+  headerPlaceholder: {
+    width: 96,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -439,32 +457,46 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
   },
-  characterCard: {
+  bookCard: {
     marginBottom: 12,
   },
   cardContent: {
     flexDirection: 'row',
     padding: 16,
   },
-  avatar: {
+  coverImage: {
     width: 60,
-    height: 60,
-    borderRadius: 30,
+    height: 80,
+    borderRadius: 8,
     marginRight: 16,
   },
-  avatarPlaceholder: {
+  coverPlaceholder: {
     backgroundColor: '#ccc',
     marginRight: 16,
+    width: 60,
+    height: 80,
+    borderRadius: 8,
   },
-  characterInfo: {
+  bookInfo: {
     flex: 1,
   },
-  characterName: {
+  bookTitle: {
     fontSize: 18,
     marginBottom: 4,
   },
-  characterDescription: {
+  bookAuthor: {
     color: '#666',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  bookDescription: {
+    color: '#666',
+    marginBottom: 4,
+  },
+  bookGenre: {
+    color: '#888',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   contentContainer: {
     flex: 1,
