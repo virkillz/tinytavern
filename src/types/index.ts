@@ -172,3 +172,29 @@ export interface StoredBook {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Image Generation Interfaces
+export type ImageOrientation = 'vertical' | 'horizontal';
+
+export interface ImageGenerationRequest {
+  prompt: string;
+  width: number;
+  height: number;
+  steps?: number;
+  cfg_scale?: number;
+  sampler_index?: string;
+  restore_faces?: boolean;
+}
+
+export interface ImageGenerationResponse {
+  images: string[];
+}
+
+export interface GeneratedImage {
+  id: string;
+  filename: string;
+  prompt: string;
+  orientation: ImageOrientation;
+  uri: string;
+  createdAt: Date;
+}

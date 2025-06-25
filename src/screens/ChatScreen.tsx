@@ -28,6 +28,7 @@ import { CharacterCardService } from '../services/characterCard';
 import { Message, AppSettings, StoredCharacter } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 import { replaceCharacterVariables } from '../utils/variableReplacement';
+import { ImageViewerModal } from '../components/ImageViewerModal';
 
 interface Props {
   navigation: any;
@@ -43,6 +44,9 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [messageMenuVisible, setMessageMenuVisible] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedAvatarUri, setSelectedAvatarUri] = useState<string | null>(null);
+  const [selectedAvatarName, setSelectedAvatarName] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -323,6 +327,20 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     setEditingMessage(null);
   };
 
+  const openAvatarViewer = (avatarUri: string, name: string) => {
+    if (avatarUri && avatarUri !== 'default_asset') {
+      setSelectedAvatarUri(avatarUri);
+      setSelectedAvatarName(name);
+      setImageViewerVisible(true);
+    }
+  };
+
+  const closeAvatarViewer = () => {
+    setImageViewerVisible(false);
+    setSelectedAvatarUri(null);
+    setSelectedAvatarName(null);
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
     const displayName = isUser ? (userProfile?.name || 'You') : (selectedCharacter?.name || 'Assistant');
@@ -335,16 +353,21 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         isUser ? styles.userMessageContainer : styles.assistantMessageContainer
       ]}>
         <View style={styles.messageHeader}>
-          {avatarSource ? (
-            <Avatar.Image 
-              size={32} 
-              source={avatarSource === 'default_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: avatarSource }} 
-            />
-          ) : (
-            <Avatar.Text size={32} label={displayName.charAt(0)} />
-          )}
+          <TouchableOpacity
+            onPress={() => avatarSource && openAvatarViewer(avatarSource, displayName)}
+            disabled={!avatarSource || avatarSource === 'default_asset'}
+          >
+            {avatarSource ? (
+              <Avatar.Image 
+                size={32} 
+                source={avatarSource === 'default_asset' 
+                  ? require('../../assets/default.png') 
+                  : { uri: avatarSource }} 
+              />
+            ) : (
+              <Avatar.Text size={32} label={displayName.charAt(0)} />
+            )}
+          </TouchableOpacity>
           <Paragraph style={styles.messageName}>{displayName}</Paragraph>
         </View>
         <Card style={[
@@ -445,21 +468,26 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('Characters')}
             style={styles.chevronButton}
           />
-          {selectedCharacter && selectedCharacter.avatar ? (
-            <Avatar.Image
-              size={40}
-              source={selectedCharacter.avatar === 'default_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: selectedCharacter.avatar }}
-              style={styles.headerAvatar}
-            />
-          ) : (
-            <Avatar.Text
-              size={40}
-              label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
-              style={styles.headerAvatar}
-            />
-          )}
+          <TouchableOpacity
+            onPress={() => selectedCharacter?.avatar && openAvatarViewer(selectedCharacter.avatar, selectedCharacter.name)}
+            disabled={!selectedCharacter?.avatar || selectedCharacter.avatar === 'default_asset'}
+          >
+            {selectedCharacter && selectedCharacter.avatar ? (
+              <Avatar.Image
+                size={40}
+                source={selectedCharacter.avatar === 'default_asset' 
+                  ? require('../../assets/default.png') 
+                  : { uri: selectedCharacter.avatar }}
+                style={styles.headerAvatar}
+              />
+            ) : (
+              <Avatar.Text
+                size={40}
+                label={selectedCharacter ? selectedCharacter.name.charAt(0) : 'C'}
+                style={styles.headerAvatar}
+              />
+            )}
+          </TouchableOpacity>
         </View>
         
         <View style={styles.headerCenter}>
@@ -541,21 +569,26 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.emptyContainer}>
           {selectedCharacter ? (
             <>
-              {selectedCharacter.avatar ? (
-                <Avatar.Image
-                  size={120}
-                  source={selectedCharacter.avatar === 'default_asset' 
-                    ? require('../../assets/default.png') 
-                    : { uri: selectedCharacter.avatar }}
-                  style={styles.largeAvatar}
-                />
-              ) : (
-                <Avatar.Text
-                  size={120}
-                  label={selectedCharacter.name.charAt(0)}
-                  style={styles.largeAvatar}
-                />
-              )}
+              <TouchableOpacity
+                onPress={() => selectedCharacter.avatar && openAvatarViewer(selectedCharacter.avatar, selectedCharacter.name)}
+                disabled={!selectedCharacter.avatar || selectedCharacter.avatar === 'default_asset'}
+              >
+                {selectedCharacter.avatar ? (
+                  <Avatar.Image
+                    size={120}
+                    source={selectedCharacter.avatar === 'default_asset' 
+                      ? require('../../assets/default.png') 
+                      : { uri: selectedCharacter.avatar }}
+                    style={styles.largeAvatar}
+                  />
+                ) : (
+                  <Avatar.Text
+                    size={120}
+                    label={selectedCharacter.name.charAt(0)}
+                    style={styles.largeAvatar}
+                  />
+                )}
+              </TouchableOpacity>
               
               <Title style={styles.characterTitle}>
                 {selectedCharacter.name}
@@ -628,6 +661,13 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           </Paragraph>
         </View>
       )}
+
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        imageUri={selectedAvatarUri}
+        title={selectedAvatarName ? `${selectedAvatarName}'s Avatar` : 'Avatar'}
+        onClose={closeAvatarViewer}
+      />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

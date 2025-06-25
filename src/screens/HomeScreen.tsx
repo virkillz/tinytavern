@@ -153,30 +153,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderBookCard = ({ item }: { item: StoredBook }) => (
     <TouchableOpacity
-      style={styles.horizontalCard}
+      style={styles.portraitCard}
       onPress={() => selectBook(item)}
     >
       <Card style={styles.bookCard}>
-        <Card.Content style={styles.horizontalCardContent}>
-          {item.cover ? (
-            <Image
-              source={item.cover === 'default_book_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: item.cover }}
-              style={styles.bookCover}
-            />
-          ) : (
-            <Avatar.Icon size={60} icon="book" style={styles.bookCoverPlaceholder} />
-          )}
-          <View style={styles.bookInfo}>
-            <Title style={styles.bookTitle} numberOfLines={1}>
+        <Card.Content style={styles.portraitCardContent}>
+          {/* Book Cover */}
+          <View style={styles.bookCoverContainer}>
+            {item.cover ? (
+              <Image
+                source={item.cover === 'default_book_asset' 
+                  ? require('../../assets/default.png') 
+                  : { uri: item.cover }}
+                style={styles.bookCoverPortrait}
+              />
+            ) : (
+              <View style={styles.bookCoverPlaceholderPortrait}>
+                <Avatar.Icon size={60} icon="book" style={styles.bookCoverIcon} />
+              </View>
+            )}
+          </View>
+          
+          {/* Book Info */}
+          <View style={styles.bookInfoPortrait}>
+            <Title style={styles.bookTitlePortrait} numberOfLines={2}>
               {item.title}
             </Title>
-            <Paragraph style={styles.bookAuthor} numberOfLines={1}>
+            <Paragraph style={styles.bookAuthorPortrait} numberOfLines={1}>
               by {item.card.data.author}
-            </Paragraph>
-            <Paragraph style={styles.bookDescription} numberOfLines={2}>
-              {item.card.data.description}
             </Paragraph>
           </View>
         </Card.Content>
@@ -440,6 +444,7 @@ const styles = StyleSheet.create({
     fontFamily: BookTypography.serif,
     fontWeight: '700',
     color: BookColors.onSurface,
+    marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,
@@ -453,6 +458,10 @@ const styles = StyleSheet.create({
   horizontalCard: {
     marginRight: 16,
     width: 280,
+  },
+  portraitCard: {
+    marginRight: 16,
+    width: 160,
   },
   card: {
     marginBottom: 20,
@@ -547,6 +556,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  portraitCardContent: {
+    padding: 16,
+    alignItems: 'center',
+  },
   characterAvatar: {
     width: 60,
     height: 60,
@@ -611,13 +624,75 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   bookDescription: {
     fontSize: 14,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
-    lineHeight: 20,
+    lineHeight: 10,
+  },
+  // Portrait Book Card Styles
+  bookCoverContainer: {
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  bookCoverPortrait: {
+    width: 120,
+    height: 160,
+    borderRadius: 2,
+    elevation: 3,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  bookCoverPlaceholderPortrait: {
+    width: 120,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: BookColors.surfaceVariant,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: BookColors.primaryLight,
+    borderStyle: 'dashed',
+  },
+  bookCoverIcon: {
+    backgroundColor: BookColors.primaryLight,
+  },
+  bookInfoPortrait: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  bookTitlePortrait: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    marginBottom: 4,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  bookAuthorPortrait: {
+    fontSize: 12,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  bookDescriptionPortrait: {
+    fontSize: 13,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   // Empty State Styles
   emptyCard: {

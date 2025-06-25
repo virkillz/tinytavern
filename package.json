@@ -21,6 +21,7 @@
     "expo-file-system": "^18.1.10",
     "expo-font": "^13.3.1",
     "expo-image-picker": "^16.1.4",
+    "expo-media-library": "^17.1.7",
     "expo-status-bar": "~2.2.3",
     "png-chunk-text": "^1.0.0",
     "png-chunks-extract": "^1.0.0",

@@ -32,6 +32,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ navigation, currentR
       onPress: () => navigation.navigate('Books'),
     },
     {
+      key: 'Gallery',
+      icon: 'image-multiple',
+      label: 'Gallery',
+      onPress: () => navigation.navigate('Gallery'),
+    },
+    {
       key: 'Profile',
       icon: 'account',
       label: 'Profile',
@@ -45,6 +51,9 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ navigation, currentR
       return true;
     }
     if (itemKey === 'Books' && (currentRoute === 'BookChat' || currentRoute === 'Books' || currentRoute === 'BookDetail' || currentRoute === 'BookEdit')) {
+      return true;
+    }
+    if (itemKey === 'Gallery' && (currentRoute === 'Gallery' || currentRoute === 'ImageGeneration')) {
       return true;
     }
     return currentRoute === itemKey;

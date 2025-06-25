@@ -24,6 +24,10 @@ import { BookManagementScreen } from './src/screens/BookManagementScreen';
 import { BookDetailScreen } from './src/screens/BookDetailScreen';
 import { BookChatScreen } from './src/screens/BookChatScreen';
 import { BookEditScreen } from './src/screens/BookEditScreen';
+
+// Import gallery screens
+import { GalleryScreen } from './src/screens/GalleryScreen';
+import { ImageGenerationScreen } from './src/screens/ImageGenerationScreen';
 import { BottomNavBar } from './src/components/BottomNavBar';
 
 const Stack = createNativeStackNavigator();
@@ -61,6 +65,7 @@ export default function App() {
     'Home',
     'Characters',
     'Books',
+    'Gallery',
     'Profile',
     'BookDetail',
     'CharacterDetail'
@@ -103,6 +108,10 @@ export default function App() {
                   <Stack.Screen name="BookDetail" component={BookDetailScreen} />
                   <Stack.Screen name="BookChat" component={BookChatScreen} />
                   <Stack.Screen name="BookEdit" component={BookEditScreen} />
+                  
+                  {/* Gallery Screens */}
+                  <Stack.Screen name="Gallery" component={GalleryScreen} />
+                  <Stack.Screen name="ImageGeneration" component={ImageGenerationScreen} />
                 </Stack.Navigator>
               </View>
               {shouldShowBottomNav && navigationRef && (
