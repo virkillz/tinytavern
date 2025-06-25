@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -40,6 +41,12 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [showFreeOnly, setShowFreeOnly] = useState(false);
+  
+  // Image Generator settings
+  const [imageGenBaseUrl, setImageGenBaseUrl] = useState('https://kitten-well-lemur.ngrok-free.app/sdapi/v1');
+  const [imageGenPort, setImageGenPort] = useState('');
+  const [imageGenAuthKey, setImageGenAuthKey] = useState('');
+  const [showImageGenInfo, setShowImageGenInfo] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -60,6 +67,11 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         if (settings.providerSettings?.ollama) {
           setOllamaHost(settings.providerSettings.ollama.host);
           setOllamaPort(settings.providerSettings.ollama.port?.toString() || '');
+        }
+        if (settings.providerSettings?.imageGenerator) {
+          setImageGenBaseUrl(settings.providerSettings.imageGenerator.baseUrl);
+          setImageGenPort(settings.providerSettings.imageGenerator.port?.toString() || '');
+          setImageGenAuthKey(settings.providerSettings.imageGenerator.authKey || '');
         }
 
         // Fetch models for current provider
@@ -159,6 +171,21 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
 
+    // Validate image generator settings
+    if (imageGenBaseUrl.trim()) {
+      try {
+        new URL(imageGenBaseUrl.trim());
+      } catch (error) {
+        Alert.alert('Error', 'Please enter a valid Image Generator base URL.');
+        return;
+      }
+      
+      if (imageGenPort.trim() && isNaN(parseInt(imageGenPort))) {
+        Alert.alert('Error', 'Please enter a valid Image Generator port number.');
+        return;
+      }
+    }
+
     if (!selectedModel && models.length > 0) {
       Alert.alert('Error', 'Please select a model.');
       return;
@@ -175,6 +202,13 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             ollama: { 
               host: ollamaHost.trim(), 
               port: ollamaPort ? parseInt(ollamaPort) : undefined
+            }
+          }),
+          ...(imageGenBaseUrl.trim() && {
+            imageGenerator: {
+              baseUrl: imageGenBaseUrl.trim(),
+              port: imageGenPort ? parseInt(imageGenPort) : undefined,
+              authKey: imageGenAuthKey.trim() || undefined,
             }
           }),
         },
@@ -233,7 +267,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card style={styles.card}>
             <Card.Content>
-              <Title>AI Provider</Title>
+              <Title>LLM Provider</Title>
               <Paragraph style={styles.description}>
                 Choose your preferred AI provider and configure settings.
               </Paragraph>
@@ -383,39 +417,101 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
           <Card style={styles.card}>
             <Card.Content>
-              <Title>Navigation</Title>
+              <Title>Image Generator</Title>
               <Paragraph style={styles.description}>
-                Quick access to main features.
+                Configure the AI image generation service for story illustrations.
               </Paragraph>
+
+              <TextInput
+                label="Base URL"
+                value={imageGenBaseUrl}
+                onChangeText={setImageGenBaseUrl}
+                mode="outlined"
+                style={styles.input}
+                placeholder="https://api.example.com/sdapi/v1"
+              />
+
+              <TextInput
+                label="Port (optional)"
+                value={imageGenPort}
+                onChangeText={setImageGenPort}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Leave empty for default/HTTPS"
+                keyboardType="numeric"
+              />
+
+              <TextInput
+                label="Authorization Key (optional)"
+                value={imageGenAuthKey}
+                onChangeText={setImageGenAuthKey}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Bearer token or API key"
+                secureTextEntry
+              />
+
+              {/* Collapsible Information */}
+              <Card style={styles.infoCard}>
+                <Card.Content>
+                  <Button
+                    mode="text"
+                    onPress={() => setShowImageGenInfo(!showImageGenInfo)}
+                    style={styles.infoToggle}
+                    icon={showImageGenInfo ? "chevron-up" : "chevron-down"}
+                    contentStyle={styles.infoToggleContent}
+                  >
+                    Setup Information
+                  </Button>
+                  
+                  {showImageGenInfo && (
+                    <View style={styles.infoContent}>
+                      <Title style={styles.infoTitle}>Compatible Services</Title>
+                      <Paragraph style={styles.infoText}>
+                        This works with any service that has a /txt2img endpoint compatible with Stable Diffusion WebUI API.
+                      </Paragraph>
+                      
+                      <Title style={styles.infoTitle}>Examples:</Title>
+                      <View style={styles.exampleContainer}>
+                        <Paragraph style={styles.exampleText}>
+                          • Novita AI: https://api.novita.ai/v3/async
+                        </Paragraph>
+                        <Paragraph style={styles.exampleText}>
+                          • Self-hosted SD WebUI: http://localhost:7860/sdapi/v1
+                        </Paragraph>
+                        <Paragraph style={styles.exampleText}>
+                          • Custom service: https://your-api.com/sdapi/v1
+                        </Paragraph>
+                      </View>
+                      
+                      <Title style={styles.infoTitle}>Configuration Notes:</Title>
+                      <View style={styles.noteContainer}>
+                        <Paragraph style={styles.noteText}>
+                          • Base URL should end with the API version (e.g., /v1, /v3/async)
+                        </Paragraph>
+                        <Paragraph style={styles.noteText}>
+                          • Do NOT include /txt2img in the base URL
+                        </Paragraph>
+                        <Paragraph style={styles.noteText}>
+                          • Port is only needed for localhost or custom ports
+                        </Paragraph>
+                        <Paragraph style={styles.noteText}>
+                          • Auth key will be sent as Authorization header if provided
+                        </Paragraph>
+                      </View>
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
               
-              <View style={styles.navigationButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Characters')}
-                  style={styles.navButton}
-                  icon="account-group"
-                >
-                  Manage Characters
-                </Button>
-                
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Books')}
-                  style={styles.navButton}
-                  icon="book-multiple"
-                >
-                  Interactive Books
-                </Button>
-                
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Profile')}
-                  style={styles.navButton}
-                  icon="account"
-                >
-                  Profile
-                </Button>
-              </View>
+              <Button
+                mode="contained"
+                onPress={saveSettings}
+                disabled={loading}
+                style={styles.saveButton}
+              >
+                Save Settings
+              </Button>
             </Card.Content>
           </Card>
         </ScrollView>
@@ -554,10 +650,64 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: 8,
   },
-  navigationButtons: {
-    gap: 12,
+  infoCard: {
+    backgroundColor: BookColors.surfaceVariant,
+    borderRadius: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
   },
-  navButton: {
+  infoToggle: {
+    justifyContent: 'flex-start',
+    paddingLeft: 0,
+  },
+  infoToggleContent: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+  },
+  infoContent: {
+    marginTop: 16,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    fontWeight: '600',
+    color: BookColors.onSurface,
+    marginTop: 12,
     marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  exampleContainer: {
+    backgroundColor: BookColors.surface,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
+  },
+  exampleText: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+    color: BookColors.onSurface,
+    marginBottom: 4,
+  },
+  bold: {
+    fontWeight: 'bold',
+  },
+  noteContainer: {
+    marginTop: 8,
+  },
+  noteText: {
+    fontSize: 13,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 18,
+    marginBottom: 4,
   },
 });

@@ -1,9 +1,39 @@
 import { ImageGenerationRequest, ImageGenerationResponse, ImageOrientation } from '../types';
+import { StorageService } from '../utils/storage';
 
 export class ImageGenerationService {
-  private baseUrl: string = 'https://kitten-well-lemur.ngrok-free.app/sdapi/v1';
-
   constructor() {}
+
+  async isConfigured(): Promise<boolean> {
+    try {
+      const settings = await StorageService.getSettings();
+      return !!(settings?.providerSettings?.imageGenerator?.baseUrl);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async getImageGenConfig() {
+    const settings = await StorageService.getSettings();
+    const imageGenSettings = settings?.providerSettings?.imageGenerator;
+    
+    if (!imageGenSettings?.baseUrl) {
+      throw new Error('Image generator not configured. Please configure it in settings.');
+    }
+
+    let baseUrl = imageGenSettings.baseUrl;
+    if (imageGenSettings.port) {
+      // Parse the URL and add port if specified
+      const url = new URL(baseUrl);
+      url.port = imageGenSettings.port.toString();
+      baseUrl = url.toString().replace(/\/$/, ''); // Remove trailing slash
+    }
+
+    return {
+      baseUrl,
+      authKey: imageGenSettings.authKey,
+    };
+  }
 
   async generateImage(
     prompt: string, 
@@ -23,15 +53,24 @@ export class ImageGenerationService {
     };
 
     try {
+      const config = await this.getImageGenConfig();
+      
       // Create abort controller for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 seconds timeout
 
-      const response = await fetch(`${this.baseUrl}/txt2img`, {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if auth key is provided
+      if (config.authKey) {
+        headers['Authorization'] = config.authKey;
+      }
+
+      const response = await fetch(`${config.baseUrl}/txt2img`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestData),
         signal: controller.signal,
       });
@@ -65,11 +104,19 @@ export class ImageGenerationService {
 
   async setModel(modelName: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/options`, {
+      const config = await this.getImageGenConfig();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (config.authKey) {
+        headers['Authorization'] = config.authKey;
+      }
+
+      const response = await fetch(`${config.baseUrl}/options`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           sd_model_checkpoint: modelName,
         }),
@@ -86,7 +133,16 @@ export class ImageGenerationService {
 
   async getModels(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/sd-models`);
+      const config = await this.getImageGenConfig();
+      
+      const headers: Record<string, string> = {};
+      if (config.authKey) {
+        headers['Authorization'] = config.authKey;
+      }
+
+      const response = await fetch(`${config.baseUrl}/sd-models`, {
+        headers,
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -102,7 +158,16 @@ export class ImageGenerationService {
 
   async getOptions(): Promise<any> {
     try {
-      const response = await fetch(`${this.baseUrl}/options`);
+      const config = await this.getImageGenConfig();
+      
+      const headers: Record<string, string> = {};
+      if (config.authKey) {
+        headers['Authorization'] = config.authKey;
+      }
+
+      const response = await fetch(`${config.baseUrl}/options`, {
+        headers,
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

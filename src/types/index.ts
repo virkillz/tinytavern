@@ -41,6 +41,11 @@ export interface ProviderSettings {
     host: string;
     port?: number;
   };
+  imageGenerator?: {
+    baseUrl: string;
+    port?: number;
+    authKey?: string;
+  };
 }
 
 export interface AppSettings {

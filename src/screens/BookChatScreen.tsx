@@ -30,6 +30,7 @@ import { BookColors, BookTypography } from '../styles/theme';
 import { replaceBookVariables } from '../utils/variableReplacement';
 import { IllustrationGenerationModal } from '../components/IllustrationGenerationModal';
 import { ImageStorageService } from '../services/imageStorage';
+import ImageGenerationService from '../services/imageGeneration';
 
 interface Props {
   navigation: any;
@@ -422,9 +423,32 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const openIllustrationModal = (messageId: string) => {
-    setCurrentMessageForIllustration(messageId);
-    setIllustrationModalVisible(true);
+  const openIllustrationModal = async (messageId: string) => {
+    try {
+      const isConfigured = await ImageGenerationService.isConfigured();
+      
+      if (!isConfigured) {
+        Alert.alert(
+          'Image Generator Not Configured',
+          'To use AI illustration generation, please configure your image generator service in Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Configure', onPress: () => navigation.navigate('Settings') }
+          ]
+        );
+        return;
+      }
+      
+      setCurrentMessageForIllustration(messageId);
+      setIllustrationModalVisible(true);
+    } catch (error) {
+      console.error('Error checking image generator configuration:', error);
+      Alert.alert(
+        'Configuration Error',
+        'Unable to check image generator configuration. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const closeIllustrationModal = () => {

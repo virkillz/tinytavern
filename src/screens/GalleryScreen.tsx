@@ -23,6 +23,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { useFocusEffect } from '@react-navigation/native';
 import { ImageStorageService } from '../services/imageStorage';
+import ImageGenerationService from '../services/imageGeneration';
 import { GeneratedImage } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 import { ImageViewerModal } from '../components/ImageViewerModal';
@@ -41,12 +42,24 @@ export const GalleryScreen: React.FC<Props> = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [imageMenuVisible, setImageMenuVisible] = useState<string | null>(null);
+  const [isImageGenConfigured, setIsImageGenConfigured] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       loadImages();
+      checkImageGenConfiguration();
     }, [])
   );
+
+  const checkImageGenConfiguration = async () => {
+    try {
+      const configured = await ImageGenerationService.isConfigured();
+      setIsImageGenConfigured(configured);
+    } catch (error) {
+      console.error('Error checking image generator configuration:', error);
+      setIsImageGenConfigured(false);
+    }
+  };
 
   const loadImages = async () => {
     try {
@@ -226,24 +239,55 @@ export const GalleryScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Card style={styles.emptyCard}>
-        <Card.Content style={styles.emptyContent}>
-          <IconButton
-            icon="image-plus"
-            size={64}
-            iconColor={BookColors.primaryLight}
-            style={styles.emptyIcon}
-          />
-          <Title style={styles.emptyTitle}>No Images Yet</Title>
-          <Paragraph style={styles.emptyText}>
-            Generate your first AI image using the button below
-          </Paragraph>
-        </Card.Content>
-      </Card>
-    </View>
-  );
+  const renderEmptyState = () => {
+    if (!isImageGenConfigured) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Card style={[styles.emptyCard, styles.warningCard]}>
+            <Card.Content style={styles.emptyContent}>
+              <IconButton
+                icon="alert-circle"
+                size={64}
+                iconColor={BookColors.warning}
+                style={styles.emptyIcon}
+              />
+              <Title style={styles.warningTitle}>Image Generator Not Configured</Title>
+              <Paragraph style={styles.warningText}>
+                To use AI image generation, please configure your image generator service in Settings.
+              </Paragraph>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('Settings')}
+                style={styles.configureButton}
+                icon="cog"
+              >
+                Configure Image Generator
+              </Button>
+            </Card.Content>
+          </Card>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Card style={styles.emptyCard}>
+          <Card.Content style={styles.emptyContent}>
+            <IconButton
+              icon="image-plus"
+              size={64}
+              iconColor={BookColors.primaryLight}
+              style={styles.emptyIcon}
+            />
+            <Title style={styles.emptyTitle}>No Images Yet</Title>
+            <Paragraph style={styles.emptyText}>
+              Generate your first AI image using the button below
+            </Paragraph>
+          </Card.Content>
+        </Card>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -330,7 +374,20 @@ export const GalleryScreen: React.FC<Props> = ({ navigation }) => {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => navigation.navigate('ImageGeneration')}
+        onPress={() => {
+          if (isImageGenConfigured) {
+            navigation.navigate('ImageGeneration');
+          } else {
+            Alert.alert(
+              'Image Generator Not Configured',
+              'Please configure your image generator service in Settings to use this feature.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Settings', onPress: () => navigation.navigate('Settings') }
+              ]
+            );
+          }
+        }}
         label="Generate"
       />
 
@@ -471,6 +528,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 300,
   },
+  warningCard: {
+    backgroundColor: BookColors.parchment,
+    borderColor: BookColors.warning,
+    borderStyle: 'solid',
+  },
   emptyContent: {
     alignItems: 'center',
     padding: 40,
@@ -493,6 +555,26 @@ const styles = StyleSheet.create({
     color: BookColors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  warningTitle: {
+    fontSize: 22,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.leather,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  warningText: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  configureButton: {
+    backgroundColor: BookColors.warning,
+    borderRadius: 12,
   },
   fab: {
     position: 'absolute',
