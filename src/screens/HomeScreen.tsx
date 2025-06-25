@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Platform,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -21,22 +22,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../utils/storage';
 import { CharacterStorageService } from '../services/characterStorage';
 import { BookStorageService } from '../services/bookStorage';
-import { AppSettings } from '../types';
+import { AppSettings, StoredCharacter, StoredBook } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
   navigation: any;
 }
 
-interface Stats {
-  characterCount: number;
-  bookCount: number;
-}
-
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [stats, setStats] = useState<Stats>({ characterCount: 0, bookCount: 0 });
   const [userProfile, setUserProfile] = useState<{ name: string; avatar?: string } | null>(null);
+  const [characters, setCharacters] = useState<StoredCharacter[]>([]);
+  const [books, setBooks] = useState<StoredBook[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -49,25 +46,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setLoading(true);
       
-      // Load settings and user profile
-      const [savedSettings, savedUserProfile] = await Promise.all([
+      // Load settings, user profile, characters, and books
+      const [savedSettings, savedUserProfile, allCharacters, allBooks] = await Promise.all([
         StorageService.getSettings(),
-        StorageService.getUserProfile()
-      ]);
-      
-      setSettings(savedSettings);
-      setUserProfile(savedUserProfile);
-      
-      // Load stats
-      const [characters, books] = await Promise.all([
+        StorageService.getUserProfile(),
         CharacterStorageService.getAllCharacters(),
         BookStorageService.getAllBooks()
       ]);
       
-      setStats({
-        characterCount: characters.length,
-        bookCount: books.length,
-      });
+      setSettings(savedSettings);
+      setUserProfile(savedUserProfile);
+      setCharacters(allCharacters.slice(0, 5)); // Limit to 5 characters
+      setBooks(allBooks.slice(0, 5)); // Limit to 5 books
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {
@@ -101,32 +91,99 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return null;
   };
 
-  const menuItems = [
-    {
-      title: 'Character Chats',
-      subtitle: `${stats.characterCount} characters available`,
-      icon: 'account-group',
-      color: BookColors.secondary,
-      route: 'Characters',
-      description: 'Chat with AI characters'
-    },
-    {
-      title: 'Interactive Books',
-      subtitle: `${stats.bookCount} books available`,
-      icon: 'book-multiple',
-      color: BookColors.primary,
-      route: 'Books',
-      description: 'AI-driven interactive story'
-    },
-    {
-      title: 'Settings',
-      subtitle: 'Configure AI providers',
-      icon: 'cog',
-      color: BookColors.accent,
-      route: 'Settings',
-      description: 'Set up your AI provider'
+  const selectCharacter = async (character: StoredCharacter) => {
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        await StorageService.saveSettings({
+          ...settings,
+          selectedCharacter: character.id,
+        });
+      }
+      navigation.navigate('Chat');
+    } catch (error) {
+      console.error('Error selecting character:', error);
     }
-  ];
+  };
+
+  const selectBook = async (book: StoredBook) => {
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        await StorageService.saveSettings({
+          ...settings,
+          selectedBook: book.id,
+        });
+      }
+      navigation.navigate('BookChat');
+    } catch (error) {
+      console.error('Error selecting book:', error);
+    }
+  };
+
+  const renderCharacterCard = ({ item }: { item: StoredCharacter }) => (
+    <TouchableOpacity
+      style={styles.horizontalCard}
+      onPress={() => selectCharacter(item)}
+    >
+      <Card style={styles.characterCard}>
+        <Card.Content style={styles.horizontalCardContent}>
+          {item.avatar ? (
+            <Image
+              source={item.avatar === 'default_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: item.avatar }}
+              style={styles.characterAvatar}
+            />
+          ) : (
+            <Avatar.Icon size={60} icon="account" style={styles.characterAvatarPlaceholder} />
+          )}
+          <View style={styles.characterInfo}>
+            <Title style={styles.characterName} numberOfLines={1}>
+              {item.name}
+            </Title>
+            <Paragraph style={styles.characterDescription} numberOfLines={2}>
+              {item.card.data.description}
+            </Paragraph>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
+  );
+
+  const renderBookCard = ({ item }: { item: StoredBook }) => (
+    <TouchableOpacity
+      style={styles.horizontalCard}
+      onPress={() => selectBook(item)}
+    >
+      <Card style={styles.bookCard}>
+        <Card.Content style={styles.horizontalCardContent}>
+          {item.cover ? (
+            <Image
+              source={item.cover === 'default_book_asset' 
+                ? require('../../assets/default.png') 
+                : { uri: item.cover }}
+              style={styles.bookCover}
+            />
+          ) : (
+            <Avatar.Icon size={60} icon="book" style={styles.bookCoverPlaceholder} />
+          )}
+          <View style={styles.bookInfo}>
+            <Title style={styles.bookTitle} numberOfLines={1}>
+              {item.title}
+            </Title>
+            <Paragraph style={styles.bookAuthor} numberOfLines={1}>
+              by {item.card.data.author}
+            </Paragraph>
+            <Paragraph style={styles.bookDescription} numberOfLines={2}>
+              {item.card.data.description}
+            </Paragraph>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
+  );
+
 
 
   return (
@@ -150,43 +207,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Title style={styles.welcomeTitle}>Welcome to Tiny Tavern</Title>
-          <Paragraph style={styles.welcomeSubtitle}>
-            AI Character Chat & Interactive Stories
+        {/* Dynamic Greeting */}
+        <View style={styles.greetingSection}>
+          <Title style={styles.greetingTitle}>
+            {userProfile?.name ? `Welcome Back, ${userProfile.name}!` : 'Welcome, Adventurer!'}
+          </Title>
+          <Paragraph style={styles.greetingSubtitle}>
+            Ready for your next adventure?
           </Paragraph>
         </View>
-
-        {/* User Profile Warning */}
-        {!userProfile?.name && (
-          <Card style={[styles.card, styles.profileWarningCard]}>
-            <Card.Content>
-              <View style={styles.warningHeader}>
-                <Avatar.Icon
-                  size={40}
-                  icon="account-alert"
-                  style={styles.profileWarningIcon}
-                />
-                <View style={styles.warningTextContainer}>
-                  <Title style={styles.profileWarningTitle}>Profile Setup Recommended</Title>
-                  <Paragraph style={styles.profileWarningText}>
-                    Set your name in your profile for a better reading experience. 
-                    Stories and characters will be personalized with your name!
-                  </Paragraph>
-                </View>
-              </View>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.navigate('Profile')}
-                style={styles.profileSetupButton}
-                icon="account"
-              >
-                Set Up Profile
-              </Button>
-            </Card.Content>
-          </Card>
-        )}
 
         {/* Provider Warning */}
         {!isProviderConfigured() && (
@@ -217,101 +246,107 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
         )}
 
-        {/* Main Menu */}
-        <View style={styles.menuContainer}>
-          <Title style={styles.menuTitle}>Choose Your Adventure</Title>
-          
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => navigation.navigate(item.route)}
-              disabled={!isProviderConfigured() && item.route !== 'Settings'}
-            >
-              <Surface style={[
-                styles.menuItem,
-                (!isProviderConfigured() && item.route !== 'Settings') && styles.disabledMenuItem
-              ]}>
-                <View style={styles.menuItemContent}>
-                  <View style={styles.menuItemLeft}>
-                    <Avatar.Icon
-                      size={60}
-                      icon={item.icon}
-                      style={[styles.menuIcon, { backgroundColor: item.color }]}
-                    />
-                    <View style={styles.menuItemText}>
-                      <Title style={styles.menuItemTitle}>{item.title}</Title>
-                      <Paragraph style={styles.menuItemSubtitle}>
-                        {item.subtitle}
-                      </Paragraph>
-                      <Paragraph style={styles.menuItemDescription}>
-                        {item.description}
-                      </Paragraph>
-                    </View>
-                  </View>
-                  <IconButton
-                    icon="chevron-right"
-                    size={24}
-                    iconColor="#666"
-                  />
-                </View>
-              </Surface>
+        {/* Chat with AI Characters Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Title style={styles.sectionTitle}>Chat with AI Characters</Title>
+            <TouchableOpacity onPress={() => navigation.navigate('Characters')}>
+              <Paragraph style={styles.seeAllText}>See All</Paragraph>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Quick Actions */}
-        {isProviderConfigured() && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.quickActionsTitle}>Quick Actions</Title>
-              <View style={styles.quickActions}>
+          </View>
+          
+          {characters.length > 0 ? (
+            <FlatList
+              data={characters}
+              renderItem={renderCharacterCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          ) : (
+            <Card style={styles.emptyCard}>
+              <Card.Content style={styles.emptyContent}>
+                <Avatar.Icon size={48} icon="account-plus" style={styles.emptyIcon} />
+                <Paragraph style={styles.emptyText}>No characters yet</Paragraph>
                 <Button
                   mode="outlined"
                   onPress={() => navigation.navigate('Characters')}
-                  style={styles.quickActionButton}
-                  icon="account-plus"
+                  style={styles.emptyButton}
                 >
-                  Add Character
+                  Create or Import Character
                 </Button>
+              </Card.Content>
+            </Card>
+          )}
+        </View>
+
+        {/* Read Interactive Books Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Title style={styles.sectionTitle}>Read Interactive Books</Title>
+            <TouchableOpacity onPress={() => navigation.navigate('Books')}>
+              <Paragraph style={styles.seeAllText}>See All</Paragraph>
+            </TouchableOpacity>
+          </View>
+          
+          {books.length > 0 ? (
+            <FlatList
+              data={books}
+              renderItem={renderBookCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          ) : (
+            <Card style={styles.emptyCard}>
+              <Card.Content style={styles.emptyContent}>
+                <Avatar.Icon size={48} icon="book-plus" style={styles.emptyIcon} />
+                <Paragraph style={styles.emptyText}>No books yet</Paragraph>
                 <Button
                   mode="outlined"
                   onPress={() => navigation.navigate('Books')}
-                  style={styles.quickActionButton}
-                  icon="book-plus"
+                  style={styles.emptyButton}
                 >
-                  Create Book
+                  Create or Import Book
                 </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Profile')}
-                  style={styles.quickActionButton}
-                  icon="account"
-                >
-                  Profile
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+              </Card.Content>
+            </Card>
+          )}
+        </View>
 
-        {/* App Info */}
-        <Card style={[styles.card, styles.infoCard]}>
-          <Card.Content>
-            <View style={styles.infoContent}>
-              <Avatar.Icon
-                size={32}
-                icon="information"
-                style={styles.infoIcon}
-              />
-              <View style={styles.infoText}>
-                <Paragraph style={styles.infoDescription}>
-                  TinyTavern is free and open source. Import character cards from 
-                  Character Tavern, SillyTavern, or create your own interactive stories.
-                </Paragraph>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Title style={styles.sectionTitle}>Quick Actions</Title>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => navigation.navigate('CharacterEdit', { characterId: null })}
+            >
+              <Card style={styles.actionCard}>
+                <Card.Content style={styles.actionCardContent}>
+                  <Avatar.Icon size={40} icon="account-plus" style={styles.actionIcon} />
+                  <Title style={styles.actionTitle}>Create Character</Title>
+                  <Paragraph style={styles.actionDescription}>Design your own AI character</Paragraph>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => navigation.navigate('Characters')}
+            >
+              <Card style={styles.actionCard}>
+                <Card.Content style={styles.actionCardContent}>
+                  <Avatar.Icon size={40} icon="upload" style={styles.actionIcon} />
+                  <Title style={styles.actionTitle}>Import Character</Title>
+                  <Paragraph style={styles.actionDescription}>Import from character card files</Paragraph>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -359,8 +394,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
-  welcomeSection: {
+  greetingSection: {
     alignItems: 'center',
     marginBottom: 32,
     backgroundColor: BookColors.surface,
@@ -374,7 +410,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BookColors.primaryLight,
   },
-  welcomeTitle: {
+  greetingTitle: {
     fontSize: 28,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
@@ -382,13 +418,41 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  welcomeSubtitle: {
+  greetingSubtitle: {
     fontSize: 16,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 24,
     fontStyle: 'italic',
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.primary,
+    fontWeight: '600',
+  },
+  horizontalList: {
+    paddingRight: 20,
+  },
+  horizontalCard: {
+    marginRight: 16,
+    width: 280,
   },
   card: {
     marginBottom: 20,
@@ -466,115 +530,162 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 3,
   },
-  welcomeText: {
-    fontSize: 18,
-    fontFamily: BookTypography.serif,
-    color: BookColors.onSurfaceVariant,
-    lineHeight: 28,
-    textAlign: 'center',
-  },
-  menuContainer: {
-    marginBottom: 20,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontFamily: BookTypography.serif,
-    fontWeight: '700',
-    color: BookColors.onSurface,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  menuItem: {
-    marginBottom: 16,
+  // Character Card Styles
+  characterCard: {
+    backgroundColor: BookColors.surface,
     borderRadius: 16,
     elevation: 4,
     shadowColor: BookColors.shadow,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 6,
-    backgroundColor: BookColors.surface,
+    shadowRadius: 4,
     borderWidth: 1,
     borderColor: BookColors.primaryLight,
   },
-  disabledMenuItem: {
-    opacity: 0.6,
-  },
-  menuItemContent: {
+  horizontalCardContent: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  characterAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
+  },
+  characterAvatarPlaceholder: {
+    backgroundColor: BookColors.primaryLight,
+    marginRight: 12,
+  },
+  characterInfo: {
     flex: 1,
   },
-  menuIcon: {
-    marginRight: 20,
-    elevation: 2,
-  },
-  menuItemText: {
-    flex: 1,
-  },
-  menuItemTitle: {
-    fontSize: 20,
+  characterName: {
+    fontSize: 16,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
     color: BookColors.onSurface,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  menuItemSubtitle: {
-    fontSize: 16,
-    fontFamily: BookTypography.serif,
-    color: BookColors.onSurfaceVariant,
-    marginBottom: 6,
-  },
-  menuItemDescription: {
+  characterDescription: {
     fontSize: 14,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
     lineHeight: 20,
-    fontStyle: 'italic',
   },
-  quickActionsTitle: {
-    fontSize: 22,
+  // Book Card Styles
+  bookCard: {
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
+  },
+  bookCover: {
+    width: 50,
+    height: 70,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  bookCoverPlaceholder: {
+    backgroundColor: BookColors.primaryLight,
+    marginRight: 12,
+    width: 50,
+    height: 70,
+  },
+  bookInfo: {
+    flex: 1,
+  },
+  bookTitle: {
+    fontSize: 16,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
     color: BookColors.onSurface,
-    marginBottom: 20,
+    marginBottom: 2,
+  },
+  bookAuthor: {
+    fontSize: 12,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    marginBottom: 4,
+  },
+  bookDescription: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 20,
+  },
+  // Empty State Styles
+  emptyCard: {
+    backgroundColor: BookColors.surfaceVariant,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: BookColors.primaryLight,
+    borderStyle: 'dashed',
+  },
+  emptyContent: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyIcon: {
+    backgroundColor: BookColors.primaryLight,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    marginBottom: 16,
     textAlign: 'center',
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 12,
-  },
-  quickActionButton: {
-    flex: 1,
+  emptyButton: {
     borderColor: BookColors.primary,
     borderRadius: 10,
   },
-  infoCard: {
-    backgroundColor: BookColors.parchment,
-    borderLeftWidth: 6,
-    borderLeftColor: BookColors.primary,
-    borderColor: BookColors.primary,
-  },
-  infoContent: {
+  // Quick Actions Grid
+  quickActionsGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    gap: 16,
   },
-  infoIcon: {
-    backgroundColor: BookColors.primary,
-    marginRight: 16,
-  },
-  infoText: {
+  quickActionCard: {
     flex: 1,
   },
-  infoDescription: {
-    color: BookColors.secondary,
-    lineHeight: 24,
-    fontFamily: BookTypography.serif,
+  actionCard: {
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
+  },
+  actionCardContent: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  actionIcon: {
+    backgroundColor: BookColors.primary,
+    marginBottom: 12,
+  },
+  actionTitle: {
     fontSize: 16,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  actionDescription: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

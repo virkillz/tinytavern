@@ -23,6 +23,7 @@ import { OpenRouterService } from '../services/openrouter';
 import { OllamaService } from '../services/ollama';
 import { StorageService } from '../utils/storage';
 import { ProviderType, AIModel, AppSettings, OpenRouterModel, OllamaModel } from '../types';
+import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
   navigation: any;
@@ -426,7 +427,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BookColors.surface,
   },
   flex: {
     flex: 1,
@@ -437,15 +438,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
   },
   headerPlaceholder: {
     width: 48,
@@ -454,11 +460,22 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    marginBottom: 16,
+    marginBottom: 20,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
   },
   description: {
     marginBottom: 16,
-    color: '#666',
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 22,
   },
   providerSelector: {
     marginBottom: 16,

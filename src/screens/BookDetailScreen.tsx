@@ -21,6 +21,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { BookStorageService } from '../services/bookStorage';
 import { StoredBook } from '../types';
+import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
   navigation: any;
@@ -304,7 +305,7 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BookColors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -312,15 +313,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
     flex: 1,
     textAlign: 'center',
   },
@@ -352,25 +358,39 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   profileCard: {
-    marginBottom: 16,
+    marginBottom: 20,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 24,
+    padding: 4,
   },
   coverImage: {
     width: 120,
     height: 160,
-    borderRadius: 8,
-    marginRight: 16,
+    borderRadius: 12,
+    marginRight: 20,
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: BookColors.primaryLight,
   },
   coverPlaceholder: {
-    backgroundColor: '#ccc',
-    marginRight: 16,
+    backgroundColor: BookColors.primaryLight,
+    marginRight: 20,
     width: 120,
     height: 160,
-    borderRadius: 8,
+    borderRadius: 12,
+    elevation: 2,
   },
   titleSection: {
     flex: 1,
@@ -378,57 +398,71 @@ const styles = StyleSheet.create({
   },
   bookTitle: {
     fontSize: 24,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
     marginBottom: 8,
     lineHeight: 30,
   },
   author: {
-    color: '#666',
     fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
     marginBottom: 4,
   },
   genre: {
-    color: '#888',
     fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.accent,
     fontStyle: 'italic',
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    marginBottom: 8,
-    color: '#333',
+    fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    marginBottom: 12,
   },
   description: {
     fontSize: 16,
+    fontFamily: BookTypography.serif,
     lineHeight: 24,
-    color: '#555',
+    color: BookColors.onSurfaceVariant,
   },
   summary: {
     fontSize: 16,
+    fontFamily: BookTypography.serif,
     lineHeight: 24,
-    color: '#555',
+    color: BookColors.onSurfaceVariant,
   },
   scenario: {
     fontSize: 16,
+    fontFamily: BookTypography.serif,
     lineHeight: 24,
-    color: '#555',
+    color: BookColors.onSurfaceVariant,
   },
   previewCard: {
-    backgroundColor: '#f8f8f8',
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196f3',
+    backgroundColor: BookColors.parchment,
+    borderLeftWidth: 6,
+    borderLeftColor: BookColors.primary,
+    borderRadius: 12,
+    elevation: 2,
   },
   firstPage: {
     fontSize: 16,
+    fontFamily: BookTypography.serif,
     lineHeight: 24,
-    color: '#333',
+    color: BookColors.secondary,
     fontStyle: 'italic',
   },
   creatorNotes: {
     fontSize: 14,
+    fontFamily: BookTypography.serif,
     lineHeight: 20,
-    color: '#777',
+    color: BookColors.accent,
     fontStyle: 'italic',
   },
   tagsContainer: {
@@ -450,6 +484,9 @@ const styles = StyleSheet.create({
   },
   readButtonInline: {
     marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    width: 'auto',
     alignSelf: 'flex-start',
   },
 });

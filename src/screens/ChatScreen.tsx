@@ -636,7 +636,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BookColors.background,
+    backgroundColor: BookColors.surface,
   },
   flex: {
     flex: 1,

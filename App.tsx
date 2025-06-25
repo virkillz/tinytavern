@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts, Forum_400Regular } from '@expo-google-fonts/forum';
 import { bookTheme } from './src/styles/theme';
 import { ChatScreen } from './src/screens/ChatScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -31,6 +32,11 @@ export default function App() {
   const [currentRoute, setCurrentRoute] = useState('Home');
   const [navigationRef, setNavigationRef] = useState<any>(null);
 
+  // Load Forum font
+  let [fontsLoaded] = useFonts({
+    Forum_400Regular,
+  });
+
   useEffect(() => {
     // Initialize default character and book when app starts
     CharacterStorageService.initializeDefaultCharacter().catch((error) => {
@@ -53,14 +59,19 @@ export default function App() {
   // Define which screens should show the bottom navigation
   const screensWithBottomNav = [
     'Home',
-    'Chat', 
     'Characters',
-    'BookChat',
     'Books',
-    'Profile'
+    'Profile',
+    'BookDetail',
+    'CharacterDetail'
   ];
 
   const shouldShowBottomNav = screensWithBottomNav.includes(currentRoute);
+
+  // Don't render the app until fonts are loaded
+  if (!fontsLoaded) {
+    return null;
+  }
 
   try {
     return (

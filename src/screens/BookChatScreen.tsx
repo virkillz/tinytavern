@@ -632,7 +632,7 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BookColors.background,
+    backgroundColor: BookColors.surface,
   },
   flex: {
     flex: 1,
@@ -643,12 +643,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerLeft: {
     flexDirection: 'row',

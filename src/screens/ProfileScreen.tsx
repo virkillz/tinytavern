@@ -18,6 +18,7 @@ import {
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { StorageService } from '../utils/storage';
+import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
   navigation: any;
@@ -145,7 +146,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BookColors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -153,15 +154,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
     flex: 1,
     textAlign: 'center',
   },
@@ -170,47 +176,70 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   card: {
     marginTop: 20,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
   },
   avatarSection: {
     alignItems: 'center',
     marginBottom: 32,
+    paddingTop: 8,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    elevation: 3,
+    borderWidth: 3,
+    borderColor: BookColors.primaryLight,
   },
   avatarPlaceholder: {
-    backgroundColor: '#ccc',
+    backgroundColor: BookColors.primaryLight,
+    elevation: 3,
   },
   avatarOverlay: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    bottom: 4,
+    right: 4,
+    backgroundColor: BookColors.primary,
     borderRadius: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: BookColors.surface,
   },
   avatarHint: {
-    color: '#666',
-    fontSize: 12,
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   input: {
     marginBottom: 24,
+    backgroundColor: BookColors.surface,
   },
   saveButton: {
     paddingVertical: 8,
+    backgroundColor: BookColors.primary,
+    borderRadius: 12,
+    elevation: 3,
   },
 });

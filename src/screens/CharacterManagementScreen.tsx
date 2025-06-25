@@ -26,6 +26,7 @@ import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
 import { PNGDebugger } from '../utils/debugPNG';
 import { StoredCharacter } from '../types';
+import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
   navigation: any;
@@ -382,7 +383,7 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BookColors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -390,16 +391,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
     flex: 1,
+    textAlign: 'center',
   },
   headerActions: {
     flexDirection: 'row',
@@ -440,31 +447,51 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   characterCard: {
-    marginBottom: 12,
+    marginBottom: 16,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
   },
   cardContent: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 20,
+    alignItems: 'center',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 20,
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: BookColors.primaryLight,
   },
   avatarPlaceholder: {
-    backgroundColor: '#ccc',
-    marginRight: 16,
+    backgroundColor: BookColors.primaryLight,
+    marginRight: 20,
+    elevation: 2,
   },
   characterInfo: {
     flex: 1,
   },
   characterName: {
-    fontSize: 18,
-    marginBottom: 4,
+    fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    marginBottom: 6,
   },
   characterDescription: {
-    color: '#666',
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    lineHeight: 24,
   },
   contentContainer: {
     flex: 1,

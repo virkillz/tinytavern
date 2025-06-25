@@ -1,5 +1,6 @@
 import { MD3LightTheme } from 'react-native-paper';
 import { Platform } from 'react-native';
+import * as Font from 'expo-font';
 
 // Book-inspired color palette with soft amber tones
 export const BookColors = {
@@ -43,10 +44,26 @@ export const BookColors = {
   cardShadow: 'rgba(212, 165, 116, 0.3)', // Amber shadow
 };
 
-// Typography system with serif fonts
+// Helper function to get serif font with fallback
+export const getSerifFont = () => {
+  // Check if Forum font is loaded, otherwise use fallback
+  const forumLoaded = Font.isLoaded('Forum_400Regular');
+  if (forumLoaded) {
+    return 'Forum_400Regular';
+  }
+  
+  return Platform.select({
+    ios: 'Georgia',
+    android: 'serif',
+    default: 'serif',
+  });
+};
+
+// Typography system with Google Fonts
 export const BookTypography = {
   // Font families
-  serif: Platform.select({
+  serif: 'Forum_400Regular',
+  serifFallback: Platform.select({
     ios: 'Georgia',
     android: 'serif',
     default: 'serif',
@@ -145,15 +162,15 @@ export const bookTheme = {
     },
     labelSmall: {
       ...MD3LightTheme.fonts.labelSmall,
-      fontFamily: BookTypography.sansSerif,
+      fontFamily: BookTypography.serif,
     },
     labelMedium: {
       ...MD3LightTheme.fonts.labelMedium,
-      fontFamily: BookTypography.sansSerif,
+      fontFamily: BookTypography.serif,
     },
     labelLarge: {
       ...MD3LightTheme.fonts.labelLarge,
-      fontFamily: BookTypography.sansSerif,
+      fontFamily: BookTypography.serif,
     },
   },
 };
