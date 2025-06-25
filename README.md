@@ -36,13 +36,25 @@ _Character selection, character details, character editing, and provider setting
 - Page-style reading interface with book covers
 - Template variables for personalized storytelling
 - Story continuation based on your choices
+- **AI-generated illustrations** to enhance storytelling experience
+- Insert custom artwork during story progression
+
+### 🎨 AI Image Generation Gallery
+- Generate images using AI with customizable prompts
+- Support for landscape and portrait orientations
+- Local storage and gallery management
+- Download images to device photo gallery
+- Configurable image generation service (Stable Diffusion WebUI API compatible)
+- Integration with story illustrations in interactive books
 
 ### 🛠️ Technical Features
 - **Cross-Platform**: iOS, Android, and Web support
 - **Multiple LLM Providers**: OpenRouter and Ollama integration
+- **AI Image Generation**: Stable Diffusion WebUI API compatible services
 - **Beautiful UI**: Book-inspired theme with serif fonts and warm colors
 - **Profile System**: Personalized experience with user profiles
 - **Data Management**: Local storage with AsyncStorage
+- **Media Library Integration**: Save generated images to device gallery
 
 ### 🆓 Open & Free
 - Completely free with no subscriptions
@@ -104,7 +116,7 @@ _Character selection, character details, character editing, and provider setting
 
 1. Register at [OpenRouter](https://openrouter.ai/)
 2. Get your API key from the dashboard
-3. In the app, go to Settings → Add your API key
+3. In the app, go to Settings → LLM Provider → Add your API key
 4. Choose from 60+ free models available
 
 #### Ollama
@@ -116,6 +128,31 @@ _Character selection, character details, character editing, and provider setting
 5. Pull desired models: `ollama pull model-name`
 
 **Note**: For cloud deployments, just enter your domain (like `https://ollama.yourdomain.com`) and leave the port field empty.
+
+### Setting up AI Image Generation
+
+#### Compatible Services
+
+The app works with any service that has a `/txt2img` endpoint compatible with Stable Diffusion WebUI API:
+
+1. **Novita AI**: Professional cloud service
+   - Base URL: `https://api.novita.ai/v3/async`
+   - Requires API key authorization
+   
+2. **Self-hosted Stable Diffusion WebUI**: 
+   - Base URL: `http://localhost:7860/sdapi/v1`
+   - No authorization required by default
+
+3. **Custom Services**: Any API compatible with SD WebUI format
+
+#### Configuration Steps
+
+1. Go to Settings → Image Provider
+2. Enter your base URL (without `/txt2img`)
+3. Set port if needed (leave empty for HTTPS)
+4. Add authorization key if required
+5. Test connection to verify setup
+6. Use Gallery feature to generate images
 
 ## Character Management
 
@@ -168,6 +205,8 @@ Create custom AI characters with:
 - **Choice-Driven**: Your decisions shape the story progression
 - **Book Covers**: Visual covers enhance the reading experience
 - **Persistent Progress**: Each book maintains its own story progression
+- **AI Illustrations**: Generate and insert custom artwork during story progression
+- **Smart Suggestions**: AI analyzes story content to suggest relevant illustrations
 
 ## App Structure
 
@@ -177,12 +216,16 @@ src/
 │   ├── HomeScreen.tsx           # Main landing page
 │   ├── ChatScreen.tsx           # Character conversations
 │   ├── BookChatScreen.tsx       # Interactive book reading
+│   ├── GalleryScreen.tsx        # AI image gallery
+│   ├── ImageGenerationScreen.tsx # AI image creation
 │   ├── CharacterManagementScreen.tsx
 │   ├── BookManagementScreen.tsx
 │   └── SettingsScreen.tsx       # Provider configuration
 ├── services/          # API and storage services
 │   ├── characterCard.ts         # Character card processing
 │   ├── bookStorage.ts          # Book data management
+│   ├── imageStorage.ts         # Image gallery management
+│   ├── imageGeneration.ts      # AI image generation API
 │   ├── openrouter.ts           # OpenRouter API
 │   └── ollama.ts               # Ollama API
 ├── utils/            # Utility functions
@@ -192,6 +235,8 @@ src/
 ├── styles/           # Theme and styling
 │   └── theme.ts               # Book-inspired theme
 └── components/       # Reusable components
+    ├── ImageViewerModal.tsx    # Full-screen image viewer
+    └── IllustrationGenerationModal.tsx # Story illustration creator
 ```
 
 ## Key Features Explained
