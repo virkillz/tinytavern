@@ -37,11 +37,13 @@ export const ImageGenerationScreen: React.FC<Props> = ({ navigation }) => {
       value: 'vertical',
       label: 'Portrait',
       icon: 'phone-portrait-outline',
+      disabled: generating,
     },
     {
       value: 'horizontal',
       label: 'Landscape',
       icon: 'phone-landscape-outline',
+      disabled: generating,
     },
   ];
 
@@ -147,7 +149,6 @@ export const ImageGenerationScreen: React.FC<Props> = ({ navigation }) => {
                 onValueChange={(value) => setOrientation(value as ImageOrientation)}
                 buttons={orientationOptions}
                 style={styles.orientationSelector}
-                disabled={generating}
               />
 
               <View style={styles.orientationInfo}>

@@ -28,6 +28,8 @@ import { BookStorageService } from '../services/bookStorage';
 import { Message, AppSettings, StoredBook } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 import { replaceBookVariables } from '../utils/variableReplacement';
+import { IllustrationGenerationModal } from '../components/IllustrationGenerationModal';
+import { ImageStorageService } from '../services/imageStorage';
 
 interface Props {
   navigation: any;
@@ -44,6 +46,8 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
   const [messageMenuVisible, setMessageMenuVisible] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [illustrationModalVisible, setIllustrationModalVisible] = useState(false);
+  const [currentMessageForIllustration, setCurrentMessageForIllustration] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -185,12 +189,12 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
 
         const service = new OpenRouterService(settings.providerSettings.openrouter.apiKey);
         
-        // Prepare messages for OpenRouter API
+        // Prepare messages for OpenRouter API - strip image markdown
         const apiMessages = [
           { role: 'system', content: bookSystemPrompt },
           ...newMessages.map(msg => ({
             role: msg.role,
-            content: msg.content,
+            content: stripImageMarkdown(msg.content),
           }))
         ];
 
@@ -215,8 +219,14 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
           settings.providerSettings.ollama.port
         );
 
+        // Strip image markdown from messages before sending to Ollama
+        const cleanMessages = newMessages.map(msg => ({
+          ...msg,
+          content: stripImageMarkdown(msg.content),
+        }));
+
         responseContent = await service.sendMessage(
-          newMessages,
+          cleanMessages,
           settings.selectedModel,
           bookSystemPrompt
         );
@@ -313,6 +323,146 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
     setEditingMessage(null);
   };
 
+  const stripImageMarkdown = (content: string): string => {
+    // Remove image markdown syntax but keep the content clean
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    return content.replace(imageRegex, '').replace(/\n\n+/g, '\n\n').trim();
+  };
+
+  const renderMessageContent = (content: string, isUserChoice: boolean) => {
+    // Split content by image markdown pattern
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = imageRegex.exec(content)) !== null) {
+      // Add text before the image
+      if (match.index > lastIndex) {
+        const textContent = content.substring(lastIndex, match.index);
+        if (textContent.trim()) {
+          parts.push({
+            type: 'text',
+            content: textContent,
+            key: `text-${lastIndex}`
+          });
+        }
+      }
+
+      // Add the image
+      parts.push({
+        type: 'image',
+        alt: match[1],
+        uri: match[2],
+        key: `image-${match.index}`
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after the last image
+    if (lastIndex < content.length) {
+      const textContent = content.substring(lastIndex);
+      if (textContent.trim()) {
+        parts.push({
+          type: 'text',
+          content: textContent,
+          key: `text-${lastIndex}`
+        });
+      }
+    }
+
+    // If no images found, just render as text
+    if (parts.length === 0) {
+      return (
+        <Paragraph style={[
+          styles.pageText,
+          isUserChoice ? styles.choiceText : styles.storyText
+        ]}>
+          {content}
+        </Paragraph>
+      );
+    }
+
+    // Render mixed content
+    return (
+      <View>
+        {parts.map((part) => {
+          if (part.type === 'text') {
+            return (
+              <Paragraph
+                key={part.key}
+                style={[
+                  styles.pageText,
+                  isUserChoice ? styles.choiceText : styles.storyText
+                ]}
+              >
+                {part.content}
+              </Paragraph>
+            );
+          } else if (part.type === 'image') {
+            return (
+              <View key={part.key} style={styles.illustrationContainer}>
+                <Image
+                  source={{ uri: part.uri }}
+                  style={styles.illustrationImage}
+                  resizeMode="cover"
+                />
+                {part.alt && (
+                  <Paragraph style={styles.illustrationCaption}>
+                    {part.alt}
+                  </Paragraph>
+                )}
+              </View>
+            );
+          }
+          return null;
+        })}
+      </View>
+    );
+  };
+
+  const openIllustrationModal = (messageId: string) => {
+    setCurrentMessageForIllustration(messageId);
+    setIllustrationModalVisible(true);
+  };
+
+  const closeIllustrationModal = () => {
+    setIllustrationModalVisible(false);
+    setCurrentMessageForIllustration(null);
+  };
+
+  const handleIllustrationGenerated = async (base64Image: string) => {
+    if (!currentMessageForIllustration) return;
+
+    try {
+      // Save the illustration to local storage
+      const savedImage = await ImageStorageService.saveImage(
+        base64Image,
+        'Story illustration',
+        'horizontal'
+      );
+
+      // Find the message and append the image markdown
+      const updatedMessages = messages.map(msg => {
+        if (msg.id === currentMessageForIllustration) {
+          const imageMarkdown = `\n\n![Story Illustration](${savedImage.uri})`;
+          return {
+            ...msg,
+            content: msg.content + imageMarkdown
+          };
+        }
+        return msg;
+      });
+
+      setMessages(updatedMessages);
+      await saveMessages(updatedMessages);
+    } catch (error) {
+      console.error('Error adding illustration to message:', error);
+      Alert.alert('Error', 'Failed to add illustration to story');
+    }
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isUserChoice = item.role === 'user';
     const pageNumber = Math.ceil((index + 1) / 2);
@@ -388,6 +538,14 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
                   <Menu.Item
                     onPress={() => {
                       setMessageMenuVisible(null);
+                      openIllustrationModal(item.id);
+                    }}
+                    title="Insert Illustration"
+                    leadingIcon="image-plus"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setMessageMenuVisible(null);
                       deleteMessage(item.id);
                     }}
                     title="Delete"
@@ -435,12 +593,9 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               </View>
             ) : (
-              <Paragraph style={[
-                styles.pageText,
-                isUserChoice ? styles.choiceText : styles.storyText
-              ]}>
-                {item.content}
-              </Paragraph>
+              <View>
+                {renderMessageContent(item.content, isUserChoice)}
+              </View>
             )}
           </Card.Content>
         </Card>
@@ -624,6 +779,12 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
             </Paragraph>
           </View>
         )}
+
+        <IllustrationGenerationModal
+          visible={illustrationModalVisible}
+          onClose={closeIllustrationModal}
+          onImageGenerated={handleIllustrationGenerated}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -912,5 +1073,27 @@ const styles = StyleSheet.create({
   editActionButton: {
     width: 40,
     height: 40,
+  },
+  illustrationContainer: {
+    marginVertical: 16,
+    alignItems: 'center',
+  },
+  illustrationImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  illustrationCaption: {
+    marginTop: 8,
+    fontSize: 12,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
