@@ -16,6 +16,7 @@ import {
   Chip,
   ActivityIndicator,
   Avatar,
+  Menu,
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { BookStorageService } from '../services/bookStorage';
@@ -33,6 +34,7 @@ interface Props {
 export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [book, setBook] = useState<StoredBook | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
   const { bookId } = route.params;
 
   useEffect(() => {
@@ -156,18 +158,34 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={() => navigation.goBack()}
         />
         <Title style={styles.headerTitle}>Book Details</Title>
-        <View style={styles.headerActions}>
-          <IconButton
-            icon="pencil"
-            size={24}
-            onPress={() => navigation.navigate('BookEdit', { bookId: book.id })}
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <IconButton
+              icon="dots-vertical"
+              size={24}
+              onPress={() => setMenuVisible(true)}
+            />
+          }
+        >
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('BookEdit', { bookId: book.id });
+            }}
+            title="Edit"
+            leadingIcon="pencil"
           />
-          <IconButton
-            icon="delete"
-            size={24}
-            onPress={deleteBook}
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              deleteBook();
+            }}
+            title="Delete"
+            leadingIcon="delete"
           />
-        </View>
+        </Menu>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -188,7 +206,18 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Title style={styles.bookTitle}>{book.title}</Title>
                 <Paragraph style={styles.author}>by {book.card.data.author}</Paragraph>
                 {book.card.data.genre && (
-                  <Paragraph style={styles.genre}>Genre: {book.card.data.genre}</Paragraph>
+                  <View>
+                    <Paragraph style={styles.genre}>Genre: {book.card.data.genre}</Paragraph>
+                    <Button
+                      mode="outlined"
+                      onPress={selectBookAndRead}
+                      style={styles.readButtonInline}
+                      icon="book-open"
+                      compact
+                    >
+                      Read
+                    </Button>
+                  </View>
                 )}
               </View>
             </View>
@@ -418,5 +447,9 @@ const styles = StyleSheet.create({
   },
   readButton: {
     paddingVertical: 8,
+  },
+  readButtonInline: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
 });

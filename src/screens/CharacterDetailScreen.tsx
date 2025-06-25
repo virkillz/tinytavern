@@ -16,6 +16,7 @@ import {
   Chip,
   ActivityIndicator,
   Avatar,
+  Menu,
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { CharacterStorageService } from '../services/characterStorage';
@@ -33,6 +34,7 @@ interface Props {
 export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [character, setCharacter] = useState<StoredCharacter | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
   const { characterId } = route.params;
 
   useEffect(() => {
@@ -156,18 +158,34 @@ export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           onPress={() => navigation.goBack()}
         />
         <Title style={styles.headerTitle}>Character Details</Title>
-        <View style={styles.headerActions}>
-          <IconButton
-            icon="pencil"
-            size={24}
-            onPress={() => navigation.navigate('CharacterEdit', { characterId: character.id })}
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <IconButton
+              icon="dots-vertical"
+              size={24}
+              onPress={() => setMenuVisible(true)}
+            />
+          }
+        >
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('CharacterEdit', { characterId: character.id });
+            }}
+            title="Edit"
+            leadingIcon="pencil"
           />
-          <IconButton
-            icon="delete"
-            size={24}
-            onPress={deleteCharacter}
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              deleteCharacter();
+            }}
+            title="Delete"
+            leadingIcon="delete"
           />
-        </View>
+        </Menu>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -187,7 +205,18 @@ export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               <View style={styles.nameSection}>
                 <Title style={styles.characterName}>{character.name}</Title>
                 {character.card.data.creator && (
-                  <Paragraph style={styles.creator}>by {character.card.data.creator}</Paragraph>
+                  <View>
+                    <Paragraph style={styles.creator}>by {character.card.data.creator}</Paragraph>
+                    <Button
+                      mode="outlined"
+                      onPress={selectCharacterAndChat}
+                      style={styles.chatButtonInline}
+                      icon="chat"
+                      compact
+                    >
+                      Start Chat
+                    </Button>
+                  </View>
                 )}
               </View>
             </View>
@@ -385,5 +414,9 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     paddingVertical: 8,
+  },
+  chatButtonInline: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
 });

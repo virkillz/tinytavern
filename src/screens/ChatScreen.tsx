@@ -41,6 +41,8 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCharacter, setSelectedCharacter] = useState<StoredCharacter | null>(null);
   const [userProfile, setUserProfile] = useState<{ name: string; avatar?: string } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [messageMenuVisible, setMessageMenuVisible] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -280,10 +282,52 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+  const deleteMessage = async (messageId: string) => {
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const updatedMessages = messages.filter(msg => msg.id !== messageId);
+            setMessages(updatedMessages);
+            await saveMessages(updatedMessages);
+          },
+        },
+      ]
+    );
+  };
+
+  const startEditMessage = (messageId: string, content: string) => {
+    setEditingMessage({ id: messageId, content });
+  };
+
+  const saveEditMessage = async () => {
+    if (!editingMessage) return;
+    
+    const updatedMessages = messages.map(msg => 
+      msg.id === editingMessage.id 
+        ? { ...msg, content: editingMessage.content.trim() }
+        : msg
+    );
+    
+    setMessages(updatedMessages);
+    await saveMessages(updatedMessages);
+    setEditingMessage(null);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessage(null);
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
     const displayName = isUser ? (userProfile?.name || 'You') : (selectedCharacter?.name || 'Assistant');
     const avatarSource = isUser ? userProfile?.avatar : selectedCharacter?.avatar;
+    const isEditing = editingMessage?.id === item.id;
 
     return (
       <View style={[
@@ -307,13 +351,80 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           styles.messageCard,
           isUser ? styles.userMessage : styles.assistantMessage
         ]}>
-          <Card.Content>
-            <Paragraph style={[
-              styles.messageText,
-              isUser ? styles.userMessageText : styles.assistantMessageText
-            ]}>
-              {item.content}
-            </Paragraph>
+          <Card.Content style={styles.messageCardContent}>
+            {/* Dropdown Menu - Top Right Corner */}
+            {!isEditing && (
+              <View style={styles.messageMenuContainer}>
+                <Menu
+                  visible={messageMenuVisible === item.id}
+                  onDismiss={() => setMessageMenuVisible(null)}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      size={16}
+                      iconColor={isUser ? "#fff" : "#999"}
+                      onPress={() => setMessageMenuVisible(item.id)}
+                      style={styles.messageMenuButton}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => {
+                      setMessageMenuVisible(null);
+                      startEditMessage(item.id, item.content);
+                    }}
+                    title="Edit"
+                    leadingIcon="pencil"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setMessageMenuVisible(null);
+                      deleteMessage(item.id);
+                    }}
+                    title="Delete"
+                    leadingIcon="close"
+                  />
+                </Menu>
+              </View>
+            )}
+
+            {isEditing ? (
+              <View style={styles.editContainer}>
+                <TextInput
+                  value={editingMessage.content}
+                  onChangeText={(text) => setEditingMessage({ ...editingMessage, content: text })}
+                  multiline
+                  mode="outlined"
+                  style={styles.editInput}
+                  autoFocus
+                />
+                <View style={styles.editActions}>
+                  <Button
+                    mode="text"
+                    onPress={cancelEditMessage}
+                    textColor="#666"
+                    style={styles.editActionButton}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={saveEditMessage}
+                    disabled={!editingMessage.content.trim()}
+                    style={styles.editActionButton}
+                  >
+                    Save
+                  </Button>
+                </View>
+              </View>
+            ) : (
+              <Paragraph style={[
+                styles.messageText,
+                isUser ? styles.userMessageText : styles.assistantMessageText
+              ]}>
+                {item.content}
+              </Paragraph>
+            )}
           </Card.Content>
         </Card>
       </View>
@@ -640,12 +751,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    justifyContent: 'space-between',
   },
   messageName: {
     marginLeft: 8,
     fontSize: 12,
     fontWeight: 'bold',
     color: '#666',
+    flex: 1,
+  },
+  messageCardContent: {
+    position: 'relative',
+  },
+  messageMenuContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  messageMenuButton: {
+    margin: 0,
+    width: 24,
+    height: 24,
+    opacity: 0.7,
+  },
+  editContainer: {
+    width: '100%',
+  },
+  editInput: {
+    marginBottom: 12,
+    minHeight: 60,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  editActionButton: {
+    minWidth: 80,
   },
   messageCard: {
     marginLeft: 40,

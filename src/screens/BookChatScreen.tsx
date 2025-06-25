@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TextInput,
+  Button,
   Card,
   Paragraph,
   IconButton,
@@ -40,6 +41,8 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedBook, setSelectedBook] = useState<StoredBook | null>(null);
   const [userProfile, setUserProfile] = useState<{ name: string; avatar?: string } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [messageMenuVisible, setMessageMenuVisible] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const flatListRef = useRef<FlatList>(null);
 
@@ -268,10 +271,53 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+  const deleteMessage = async (messageId: string) => {
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const updatedMessages = messages.filter(msg => msg.id !== messageId);
+            setMessages(updatedMessages);
+            setCurrentPage(Math.ceil(updatedMessages.length / 2) || 1);
+            await saveMessages(updatedMessages);
+          },
+        },
+      ]
+    );
+  };
+
+  const startEditMessage = (messageId: string, content: string) => {
+    setEditingMessage({ id: messageId, content });
+  };
+
+  const saveEditMessage = async () => {
+    if (!editingMessage) return;
+    
+    const updatedMessages = messages.map(msg => 
+      msg.id === editingMessage.id 
+        ? { ...msg, content: editingMessage.content.trim() }
+        : msg
+    );
+    
+    setMessages(updatedMessages);
+    await saveMessages(updatedMessages);
+    setEditingMessage(null);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessage(null);
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isUserChoice = item.role === 'user';
     const pageNumber = Math.ceil((index + 1) / 2);
     const isFirstStoryPage = index === 0 && !isUserChoice;
+    const isEditing = editingMessage?.id === item.id;
 
     return (
       <View style={styles.pageContainer}>
@@ -315,7 +361,43 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
           isUserChoice ? styles.choiceCard : styles.storyCard
         ]}>
           <Card.Content style={styles.pageContent}>
-            {isUserChoice && (
+            {/* Dropdown Menu - Top Right Corner */}
+            {!isEditing && (
+              <View style={styles.messageMenuContainer}>
+                <Menu
+                  visible={messageMenuVisible === item.id}
+                  onDismiss={() => setMessageMenuVisible(null)}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      size={20}
+                      iconColor="#999"
+                      onPress={() => setMessageMenuVisible(item.id)}
+                      style={styles.messageMenuButton}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => {
+                      setMessageMenuVisible(null);
+                      startEditMessage(item.id, item.content);
+                    }}
+                    title="Edit"
+                    leadingIcon="pencil"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setMessageMenuVisible(null);
+                      deleteMessage(item.id);
+                    }}
+                    title="Delete"
+                    leadingIcon="trash-can"
+                  />
+                </Menu>
+              </View>
+            )}
+
+            {isUserChoice && !isEditing && (
               <View style={styles.choiceHeader}>
                 <Avatar.Text 
                   size={24} 
@@ -325,12 +407,41 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
                 <Paragraph style={styles.choiceLabel}>Your Choice:</Paragraph>
               </View>
             )}
-            <Paragraph style={[
-              styles.pageText,
-              isUserChoice ? styles.choiceText : styles.storyText
-            ]}>
-              {item.content}
-            </Paragraph>
+
+            {isEditing ? (
+              <View style={styles.editContainer}>
+                <TextInput
+                  value={editingMessage.content}
+                  onChangeText={(text) => setEditingMessage({ ...editingMessage, content: text })}
+                  multiline
+                  mode="outlined"
+                  style={styles.editInput}
+                  autoFocus
+                />
+                <View style={styles.editActions}>
+                  <IconButton
+                    icon="close"
+                    mode="outlined"
+                    onPress={cancelEditMessage}
+                    style={styles.editActionButton}
+                  />
+                  <IconButton
+                    icon="check"
+                    mode="contained"
+                    onPress={saveEditMessage}
+                    disabled={!editingMessage.content.trim()}
+                    style={styles.editActionButton}
+                  />
+                </View>
+              </View>
+            ) : (
+              <Paragraph style={[
+                styles.pageText,
+                isUserChoice ? styles.choiceText : styles.storyText
+              ]}>
+                {item.content}
+              </Paragraph>
+            )}
           </Card.Content>
         </Card>
       </View>
@@ -771,5 +882,33 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 8,
     color: '#666',
+  },
+  messageMenuContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  messageMenuButton: {
+    margin: 0,
+    width: 32,
+    height: 32,
+  },
+  editContainer: {
+    width: '100%',
+  },
+  editInput: {
+    marginBottom: 12,
+    minHeight: 60,
+    backgroundColor: '#fff',
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  editActionButton: {
+    width: 40,
+    height: 40,
   },
 });

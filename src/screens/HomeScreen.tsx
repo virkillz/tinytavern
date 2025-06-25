@@ -131,21 +131,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Top Navigation Bar */}
+      <View style={styles.topNavBar}>
+        <View style={styles.topNavLeft}>
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={styles.topNavLogo}
+          />
+          <Title style={styles.topNavTitle}>Tiny Tavern</Title>
+        </View>
+        <IconButton
+          icon="cog"
+          size={24}
+          iconColor={BookColors.onSurface}
+          onPress={() => navigation.navigate('Settings')}
+          style={styles.settingsButton}
+        />
+      </View>
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header with Logo */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require('../../assets/adaptive-icon.png')} 
-              style={styles.logo}
-            />
-            <View style={styles.titleContainer}>
-              <Title style={styles.appTitle}>TinyTavern</Title>
-              <Paragraph style={styles.appSubtitle}>
-                AI Character Chat & Interactive Stories
-              </Paragraph>
-            </View>
-          </View>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Title style={styles.welcomeTitle}>Welcome to Tiny Tavern</Title>
+          <Paragraph style={styles.welcomeSubtitle}>
+            AI Character Chat & Interactive Stories
+          </Paragraph>
         </View>
 
         {/* User Profile Warning */}
@@ -312,10 +322,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BookColors.background,
   },
+  topNavBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: BookColors.surface,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
+  },
+  topNavLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  topNavLogo: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+    borderRadius: 8,
+  },
+  topNavTitle: {
+    fontSize: 20,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+  },
+  settingsButton: {
+    margin: 0,
+  },
   scrollContent: {
     padding: 20,
   },
-  header: {
+  welcomeSection: {
     alignItems: 'center',
     marginBottom: 32,
     backgroundColor: BookColors.surface,
@@ -329,43 +374,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BookColors.primaryLight,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 140,
-    height: 140,
-    borderRadius: 25,
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: BookColors.primary,
-    elevation: 4,
-    shadowColor: BookColors.cardShadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-  },
-  titleContainer: {
-    alignItems: 'center'
-  },
-  appTitle: {
-    paddingTop: 10,
-    fontSize: 38,
+  welcomeTitle: {
+    fontSize: 28,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
     color: BookColors.onSurface,
-    marginBottom: 12,
-    textShadowColor: BookColors.shadow,
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  appSubtitle: {
+  welcomeSubtitle: {
     fontSize: 16,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
     textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: 24,
     fontStyle: 'italic',
   },
   card: {
