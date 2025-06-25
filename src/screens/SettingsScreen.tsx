@@ -19,6 +19,8 @@ import {
   IconButton,
   Switch,
   SegmentedButtons,
+  Chip,
+  HelperText,
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { OllamaService } from '../services/ollama';
@@ -41,12 +43,17 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   
   // Image Generator settings
   const [imageGenBaseUrl, setImageGenBaseUrl] = useState('https://kitten-well-lemur.ngrok-free.app/sdapi/v1');
   const [imageGenPort, setImageGenPort] = useState('');
   const [imageGenAuthKey, setImageGenAuthKey] = useState('');
   const [showImageGenInfo, setShowImageGenInfo] = useState(false);
+  const [testingImageGen, setTestingImageGen] = useState(false);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'llm' | 'image'>('llm');
 
   useEffect(() => {
     loadSettings();
@@ -56,6 +63,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const settings = await StorageService.getSettings();
       if (settings) {
+        setSettings(settings);
         setProvider(settings.provider || 'openrouter');
         setSelectedModel(settings.selectedModel);
         setSystemPrompt(settings.systemPrompt || 'You are a helpful AI assistant.');
@@ -150,6 +158,44 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Connection test failed.');
     } finally {
       setTestingConnection(false);
+    }
+  };
+
+  const testImageGenConnection = async () => {
+    if (!imageGenBaseUrl.trim()) {
+      Alert.alert('Error', 'Please enter the Image Generator base URL first.');
+      return;
+    }
+
+    setTestingImageGen(true);
+    try {
+      let testUrl = imageGenBaseUrl.trim();
+      if (imageGenPort) {
+        const url = new URL(testUrl);
+        url.port = imageGenPort;
+        testUrl = url.toString().replace(/\/$/, '');
+      }
+
+      const headers: Record<string, string> = {};
+      if (imageGenAuthKey.trim()) {
+        headers['Authorization'] = imageGenAuthKey.trim();
+      }
+
+      const response = await fetch(`${testUrl}/options`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Image Generator connection successful!');
+      } else {
+        Alert.alert('Error', `Connection failed with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Image generator connection test error:', error);
+      Alert.alert('Error', 'Failed to connect to Image Generator. Please check your settings.');
+    } finally {
+      setTestingImageGen(false);
     }
   };
 
@@ -248,6 +294,47 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     return true;
   });
 
+  const getCurrentLLMStatus = () => {
+    if (!settings) return 'Not Configured';
+    
+    try {
+      if (settings.provider === 'openrouter') {
+        return settings.providerSettings?.openrouter?.apiKey 
+          ? `Provider: OpenRouter\nModel: ${settings.selectedModel || 'No model selected'}` 
+          : 'Not Configured';
+      } else if (settings.provider === 'ollama') {
+        return settings.providerSettings?.ollama?.host 
+          ? `Provider: Ollama\nHost: ${settings.providerSettings.ollama.host}${settings.providerSettings.ollama.port ? ':' + settings.providerSettings.ollama.port : ''}\nModel: ${settings.selectedModel || 'No model selected'}` 
+          : 'Not Configured';
+      }
+    } catch (error) {
+      console.error('Error getting LLM status:', error);
+    }
+    
+    return 'Not Configured';
+  };
+
+  const getCurrentImageGenStatus = () => {
+    if (!settings?.providerSettings?.imageGenerator?.baseUrl) {
+      return 'Not Configured';
+    }
+    
+    try {
+      const config = settings.providerSettings.imageGenerator;
+      let host = config.baseUrl;
+      if (config.port) {
+        const url = new URL(host);
+        url.port = config.port.toString();
+        host = url.toString().replace(/\/$/, '');
+      }
+      
+      return `Host: ${host}`;
+    } catch (error) {
+      console.error('Error getting image generator status:', error);
+      return 'Not Configured';
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -259,18 +346,62 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <Title style={styles.headerTitle}>Providers</Title>
         <View style={styles.headerPlaceholder} />
       </View>
+
+      {/* Current Status Information */}
+      <Card style={styles.statusCard}>
+        <Card.Content>
+          <Title style={styles.statusTitle}>Current Configuration</Title>
+          
+          <View style={styles.statusSection}>
+            <Paragraph style={styles.statusLabel}>LLM Provider:</Paragraph>
+            <Paragraph style={styles.statusValue}>
+              {getCurrentLLMStatus()}
+            </Paragraph>
+          </View>
+          
+          <View style={styles.statusSection}>
+            <Paragraph style={styles.statusLabel}>Image Provider:</Paragraph>
+            <Paragraph style={styles.statusValue}>
+              {getCurrentImageGenStatus()}
+            </Paragraph>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <SegmentedButtons
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'llm' | 'image')}
+          buttons={[
+            {
+              value: 'llm',
+              label: 'LLM Provider',
+              icon: 'brain',
+            },
+            {
+              value: 'image',
+              label: 'Image Provider',
+              icon: 'image',
+            },
+          ]}
+          style={styles.tabSelector}
+        />
+      </View>
       
       <KeyboardAvoidingView 
         style={styles.flex} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title>LLM Provider</Title>
-              <Paragraph style={styles.description}>
-                Choose your preferred AI provider and configure settings.
-              </Paragraph>
+          {/* LLM Provider Tab */}
+          {activeTab === 'llm' && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Title>LLM Provider Configuration</Title>
+                <Paragraph style={styles.description}>
+                  Choose your preferred AI provider and configure settings.
+                </Paragraph>
 
               <SegmentedButtons
                 value={provider}
@@ -324,8 +455,10 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     style={styles.input}
                     placeholder="Leave empty for default/HTTPS domains"
                     keyboardType="numeric"
-                    helperText="Only needed for localhost or custom ports (e.g., 11434)"
                   />
+                  <HelperText type="info">
+                    Only needed for custom ports (e.g., 11434)
+                  </HelperText>
                 </>
               )}
 
@@ -414,10 +547,13 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
               </Button>
             </Card.Content>
           </Card>
+          )}
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title>Image Generator</Title>
+          {/* Image Provider Tab */}
+          {activeTab === 'image' && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Title>Image Generator Configuration</Title>
               <Paragraph style={styles.description}>
                 Configure the AI image generation service for story illustrations.
               </Paragraph>
@@ -503,6 +639,18 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                   )}
                 </Card.Content>
               </Card>
+
+              <View style={styles.buttonRow}>
+                <Button
+                  mode="outlined"
+                  onPress={testImageGenConnection}
+                  loading={testingImageGen}
+                  disabled={testingImageGen}
+                  style={styles.testButton}
+                >
+                  Test Connection
+                </Button>
+              </View>
               
               <Button
                 mode="contained"
@@ -514,6 +662,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
               </Button>
             </Card.Content>
           </Card>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -649,6 +798,48 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 8,
+  },
+  statusCard: {
+    margin: 16,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    marginBottom: 16,
+  },
+  statusSection: {
+    marginBottom: 12,
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    fontWeight: '600',
+    color: BookColors.onSurfaceVariant,
+    marginBottom: 4,
+  },
+  statusValue: {
+    fontSize: 14,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurface,
+    lineHeight: 20,
+  },
+  tabContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  tabSelector: {
+    marginBottom: 0,
   },
   infoCard: {
     backgroundColor: BookColors.surfaceVariant,

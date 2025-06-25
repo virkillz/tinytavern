@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import {
   Title,
@@ -179,7 +180,7 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
           </View>
 
           {/* Content */}
-          <View style={styles.content}>
+          <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
             <Card style={styles.card}>
               <Card.Content>
                 <Title style={styles.sectionTitle}>Scene Description</Title>
@@ -259,7 +260,7 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
                 </View>
               </Card.Content>
             </Card>
-          </View>
+          </ScrollView>
 
           {/* Generate Button */}
           <View style={styles.bottomContainer}>
@@ -325,7 +326,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 20,
   },
   card: {
     marginBottom: 20,

@@ -198,6 +198,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Image 
             source={require('../../assets/icon.png')} 
             style={styles.topNavLogo}
+            resizeMode="cover"
+            fadeDuration={0}
           />
           <Title style={styles.topNavTitle}>Tiny Tavern</Title>
         </View>
