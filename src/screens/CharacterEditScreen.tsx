@@ -20,8 +20,10 @@ import {
   ActivityIndicator,
 } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
+import ImageGenerationService from '../services/imageGeneration';
 import { StoredCharacter } from '../types';
 
 interface Props {
@@ -51,6 +53,7 @@ export const CharacterEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const [creator, setCreator] = useState('');
   const [tags, setTags] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   useEffect(() => {
     if (isEditing) {
@@ -88,7 +91,28 @@ export const CharacterEditScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const pickAvatar = async () => {
+  const showImageSourceChoice = () => {
+    Alert.alert(
+      'Choose Image Source',
+      'How would you like to add an avatar for this character?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Generate Image',
+          onPress: () => generateAvatar(),
+        },
+        {
+          text: 'Upload from Gallery',
+          onPress: () => pickAvatarFromGallery(),
+        },
+      ]
+    );
+  };
+
+  const pickAvatarFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -109,6 +133,68 @@ export const CharacterEditScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error picking avatar:', error);
       Alert.alert('Error', 'Failed to pick avatar');
+    }
+  };
+
+  const generateAvatar = async () => {
+    try {
+      // Check if image generation is configured
+      const isConfigured = await ImageGenerationService.isConfigured();
+      if (!isConfigured) {
+        Alert.alert(
+          'Image Generator Not Configured',
+          'Please configure the image generator in Settings to use this feature.',
+          [
+            {
+              text: 'OK',
+            },
+            {
+              text: 'Go to Settings',
+              onPress: () => navigation.navigate('Settings'),
+            },
+          ]
+        );
+        return;
+      }
+
+      setGeneratingImage(true);
+
+      // Create a prompt based on character details
+      let prompt = '';
+      if (name.trim()) {
+        prompt = name.trim();
+      }
+      if (description.trim()) {
+        prompt += `, ${description.trim()}`;
+      }
+      if (personality.trim()) {
+        prompt += `, personality: ${personality.trim()}`;
+      }
+
+      // Fallback prompt if no details provided yet
+      if (!prompt) {
+        prompt = 'portrait of a character, fantasy style, detailed artwork';
+      } else {
+        prompt = `portrait of ${prompt}, detailed artwork, character design`;
+      }
+
+      const base64Image = await ImageGenerationService.generateImage(prompt, 'vertical');
+      
+      // Convert base64 to file URI
+      const fileName = `generated_avatar_${Date.now()}.png`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      await FileSystem.writeAsStringAsync(fileUri, base64Image, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      setAvatarUri(fileUri);
+      Alert.alert('Success', 'Avatar generated successfully!');
+    } catch (error) {
+      console.error('Error generating avatar:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate avatar');
+    } finally {
+      setGeneratingImage(false);
     }
   };
 
@@ -248,16 +334,37 @@ export const CharacterEditScreen: React.FC<Props> = ({ navigation, route }) => {
               
               {/* Avatar */}
               <View style={styles.avatarSection}>
-                <TouchableOpacity onPress={pickAvatar} style={styles.avatarContainer}>
+                <TouchableOpacity 
+                  onPress={showImageSourceChoice} 
+                  style={styles.avatarContainer}
+                  disabled={generatingImage}
+                >
                   {avatarUri ? (
                     <Image source={{ uri: avatarUri }} style={styles.avatar} />
                   ) : (
                     <View style={styles.avatarPlaceholder}>
-                      <IconButton icon="camera" size={32} />
-                      <Paragraph style={styles.avatarText}>Tap to add avatar</Paragraph>
+                      {generatingImage ? (
+                        <>
+                          <ActivityIndicator size="large" color="#666" />
+                          <Paragraph style={styles.avatarText}>Generating...</Paragraph>
+                        </>
+                      ) : (
+                        <>
+                          <IconButton icon="camera" size={32} />
+                          <Paragraph style={styles.avatarText}>Tap to add avatar</Paragraph>
+                        </>
+                      )}
                     </View>
                   )}
                 </TouchableOpacity>
+                {avatarUri && !generatingImage && (
+                  <TouchableOpacity 
+                    onPress={showImageSourceChoice}
+                    style={styles.changeAvatarButton}
+                  >
+                    <Paragraph style={styles.changeAvatarText}>Change Avatar</Paragraph>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TextInput
@@ -422,6 +529,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  changeAvatarButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+  },
+  changeAvatarText: {
     fontSize: 12,
     color: '#666',
     textAlign: 'center',

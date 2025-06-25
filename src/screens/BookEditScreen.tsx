@@ -21,7 +21,9 @@ import {
   Chip,
 } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { BookStorageService } from '../services/bookStorage';
+import ImageGenerationService from '../services/imageGeneration';
 import { StoredBook, BookCard } from '../types';
 
 interface Props {
@@ -53,6 +55,7 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   useEffect(() => {
     if (isEditing && bookId) {
@@ -87,7 +90,28 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const pickCover = async () => {
+  const showImageSourceChoice = () => {
+    Alert.alert(
+      'Choose Image Source',
+      'How would you like to add a cover for this book?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Generate Image',
+          onPress: () => generateCover(),
+        },
+        {
+          text: 'Upload from Gallery',
+          onPress: () => pickCoverFromGallery(),
+        },
+      ]
+    );
+  };
+
+  const pickCoverFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -108,6 +132,68 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error picking cover:', error);
       Alert.alert('Error', 'Failed to pick cover image');
+    }
+  };
+
+  const generateCover = async () => {
+    try {
+      // Check if image generation is configured
+      const isConfigured = await ImageGenerationService.isConfigured();
+      if (!isConfigured) {
+        Alert.alert(
+          'Image Generator Not Configured',
+          'Please configure the image generator in Settings to use this feature.',
+          [
+            {
+              text: 'OK',
+            },
+            {
+              text: 'Go to Settings',
+              onPress: () => navigation.navigate('Settings'),
+            },
+          ]
+        );
+        return;
+      }
+
+      setGeneratingImage(true);
+
+      // Create a prompt based on book details
+      let prompt = '';
+      if (title.trim()) {
+        prompt = `book cover for "${title.trim()}"`;
+      }
+      if (genre.trim()) {
+        prompt += `, ${genre.trim()} genre`;
+      }
+      if (description.trim()) {
+        prompt += `, ${description.trim()}`;
+      }
+
+      // Fallback prompt if no details provided yet
+      if (!prompt) {
+        prompt = 'fantasy book cover, detailed artwork, professional design';
+      } else {
+        prompt += ', book cover design, detailed artwork';
+      }
+
+      const base64Image = await ImageGenerationService.generateImage(prompt, 'vertical');
+      
+      // Convert base64 to file URI
+      const fileName = `generated_book_cover_${Date.now()}.png`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      await FileSystem.writeAsStringAsync(fileUri, base64Image, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      setCoverUri(fileUri);
+      Alert.alert('Success', 'Book cover generated successfully!');
+    } catch (error) {
+      console.error('Error generating cover:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate cover');
+    } finally {
+      setGeneratingImage(false);
     }
   };
 
@@ -260,18 +346,41 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
               {/* Cover Image */}
               <View style={styles.coverSection}>
                 <Paragraph style={styles.fieldLabel}>Cover Image</Paragraph>
-                <TouchableOpacity onPress={pickCover} style={styles.coverPicker}>
+                <TouchableOpacity 
+                  onPress={showImageSourceChoice} 
+                  style={styles.coverPicker}
+                  disabled={generatingImage}
+                >
                   {coverUri ? (
                     <Image source={{ uri: coverUri }} style={styles.coverPreview} />
                   ) : (
                     <View style={styles.coverPlaceholder}>
-                      <IconButton icon="book" size={40} />
-                      <Paragraph style={styles.coverPlaceholderText}>
-                        Tap to select cover
-                      </Paragraph>
+                      {generatingImage ? (
+                        <>
+                          <ActivityIndicator size="large" color="#666" />
+                          <Paragraph style={styles.coverPlaceholderText}>
+                            Generating cover...
+                          </Paragraph>
+                        </>
+                      ) : (
+                        <>
+                          <IconButton icon="book" size={40} />
+                          <Paragraph style={styles.coverPlaceholderText}>
+                            Tap to select cover
+                          </Paragraph>
+                        </>
+                      )}
                     </View>
                   )}
                 </TouchableOpacity>
+                {coverUri && !generatingImage && (
+                  <TouchableOpacity 
+                    onPress={showImageSourceChoice}
+                    style={styles.changeCoverButton}
+                  >
+                    <Paragraph style={styles.changeCoverText}>Change Cover</Paragraph>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Basic Info */}
@@ -529,6 +638,19 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
+  },
+  changeCoverButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    alignSelf: 'center',
+  },
+  changeCoverText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
   tagInputContainer: {
     flexDirection: 'row',

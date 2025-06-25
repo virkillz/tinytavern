@@ -101,7 +101,7 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
 
       // Clean the message content by removing existing image markdown
       const cleanContent = messageContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
-      const prompt = `Create an illustration description for the following part of the story: ${cleanContent}`;
+      const prompt = `Create an midjourney image generation prompt to illustrate the following story: ${cleanContent}`;
       
       let suggestionText = '';
 
