@@ -17,6 +17,7 @@ import {
   Avatar,
   Surface,
   IconButton,
+  Menu,
 } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../utils/storage';
@@ -35,6 +36,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [characters, setCharacters] = useState<StoredCharacter[]>([]);
   const [books, setBooks] = useState<StoredBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -203,13 +205,48 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           />
           <Title style={styles.topNavTitle}>Tiny Tavern</Title>
         </View>
-        <IconButton
-          icon="cog"
-          size={24}
-          iconColor={BookColors.onSurface}
-          onPress={() => navigation.navigate('Settings')}
-          style={styles.settingsButton}
-        />
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <IconButton
+              icon="menu"
+              size={24}
+              iconColor={BookColors.onSurface}
+              onPress={() => setMenuVisible(true)}
+              style={styles.menuButton}
+            />
+          }
+          contentStyle={styles.menuContent}
+        >
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('Settings');
+            }}
+            title="Settings"
+            leadingIcon="cog"
+            titleStyle={styles.menuItemTitle}
+          />
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('Gallery');
+            }}
+            title="Gallery"
+            leadingIcon="image-multiple"
+            titleStyle={styles.menuItemTitle}
+          />
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('Profile');
+            }}
+            title="Profile"
+            leadingIcon="account"
+            titleStyle={styles.menuItemTitle}
+          />
+        </Menu>
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -353,6 +390,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -395,8 +433,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BookColors.onSurface,
   },
-  settingsButton: {
+  menuButton: {
     margin: 0,
+  },
+  menuContent: {
+    backgroundColor: BookColors.surface,
+    borderRadius: 12,
+    marginTop: 8,
+    elevation: 8,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  menuItemTitle: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurface,
   },
   scrollContent: {
     padding: 20,

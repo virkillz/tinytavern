@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyTavern - AI Character Chat & Interactive Stories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tavern-amber': '#D4A574',
+                        'tavern-dark': '#8B4513',
+                        'tavern-cream': '#FDF6E3',
+                        'tavern-brown': '#6B4423'
+                    },
+                    fontFamily: {
+                        'serif': ['Georgia', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-tavern-cream font-serif text-tavern-brown">
+    <!-- Hero Section -->
+    <header class="bg-gradient-to-br from-tavern-amber to-tavern-dark text-white">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                    <span class="text-tavern-dark font-bold text-xl">🍺</span>
+                </div>
+                <h1 class="text-2xl font-bold">TinyTavern</h1>
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="#features" class="hover:text-tavern-amber transition-colors">Features</a>
+                <a href="#screenshots" class="hover:text-tavern-amber transition-colors">Screenshots</a>
+                <a href="#getting-started" class="hover:text-tavern-amber transition-colors">Get Started</a>
+                <a href="#download" class="bg-white text-tavern-dark px-4 py-2 rounded-lg hover:bg-tavern-cream transition-colors">Download</a>
+            </div>
+        </nav>
+        
+        <div class="container mx-auto px-6 py-20 text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                AI Character Chat &<br>
+                <span class="text-tavern-amber">Interactive Stories</span>
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
+                Experience the magic of AI-powered conversations and interactive storytelling on your mobile device. 
+                Chat with your favorite characters and dive into choose-your-own-adventure style books.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="bg-white text-tavern-dark px-8 py-4 rounded-lg text-lg font-semibold hover:bg-tavern-cream transition-colors shadow-lg">
+                    📱 Download for Mobile
+                </button>
+                <button class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-tavern-dark transition-colors">
+                    🌐 Try Web Version
+                </button>
+            </div>
+            <p class="mt-6 text-white/80">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-sm">100% Free</span>
+                <span class="bg-white/20 px-3 py-1 rounded-full text-sm ml-2">Open Source</span>
+                <span class="bg-white/20 px-3 py-1 rounded-full text-sm ml-2">No Subscriptions</span>
+            </p>
+        </div>
+    </header>
+
+    <!-- Key Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16 text-tavern-dark">Why Choose TinyTavern?</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center p-6 rounded-xl bg-tavern-cream shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-4xl mb-4">🆓</div>
+                    <h3 class="text-xl font-bold mb-3 text-tavern-dark">Completely Free</h3>
+                    <p class="text-tavern-brown">No subscriptions, no hidden costs, no message limits. Everything is free forever.</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-xl bg-tavern-cream shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-4xl mb-4">🔓</div>
+                    <h3 class="text-xl font-bold mb-3 text-tavern-dark">Open Source</h3>
+                    <p class="text-tavern-brown">MIT licensed, transparent code you can trust and modify to suit your needs.</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-xl bg-tavern-cream shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-4xl mb-4">🔒</div>
+                    <h3 class="text-xl font-bold mb-3 text-tavern-dark">Privacy First</h3>
+                    <p class="text-tavern-brown">No data collection, no tracking. Your conversations stay completely private.</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-xl bg-tavern-cream shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-4xl mb-4">📱</div>
+                    <h3 class="text-xl font-bold mb-3 text-tavern-dark">Cross-Platform</h3>
+                    <p class="text-tavern-brown">Works seamlessly on iOS, Android, and Web browsers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Features -->
+    <section class="py-20 bg-tavern-cream">
+        <div class="container mx-auto px-6">
+            <div class="grid lg:grid-cols-3 gap-12">
+                
+                <!-- AI Character Chat -->
+                <div class="bg-white rounded-xl p-8 shadow-lg">
+                    <div class="text-5xl mb-6">🤖</div>
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark">AI Character Chat</h3>
+                    <ul class="space-y-3 text-tavern-brown">
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Engage with customizable AI characters
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Character Card v2/v3 support
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Per-character conversation history
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Variable replacement system
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Search and filter characters
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Interactive Books -->
+                <div class="bg-white rounded-xl p-8 shadow-lg">
+                    <div class="text-5xl mb-6">📚</div>
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark">Interactive Books</h3>
+                    <ul class="space-y-3 text-tavern-brown">
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Choose-your-own-adventure stories
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Convert character cards to books
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            AI-generated illustrations
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Page-style reading interface
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Story continuation based on choices
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- AI Image Generation -->
+                <div class="bg-white rounded-xl p-8 shadow-lg">
+                    <div class="text-5xl mb-6">🎨</div>
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark">AI Image Gallery</h3>
+                    <ul class="space-y-3 text-tavern-brown">
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Generate images with AI prompts
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Landscape & portrait orientations
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Local storage & gallery management
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Download to device gallery
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-tavern-amber mr-2">✓</span>
+                            Story illustration integration
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section id="screenshots" class="py-20 bg-white">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold mb-16 text-tavern-dark">See TinyTavern in Action</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
+                <div class="bg-tavern-cream rounded-xl p-6 shadow-lg">
+                    <div class="bg-gray-200 rounded-lg h-64 mb-4 flex items-center justify-center">
+                        <span class="text-gray-500">📱 Home Screen</span>
+                    </div>
+                    <h4 class="font-semibold text-tavern-dark">Home Screen</h4>
+                    <p class="text-sm text-tavern-brown mt-2">Clean, intuitive interface</p>
+                </div>
+                
+                <div class="bg-tavern-cream rounded-xl p-6 shadow-lg">
+                    <div class="bg-gray-200 rounded-lg h-64 mb-4 flex items-center justify-center">
+                        <span class="text-gray-500">💬 Character Chat</span>
+                    </div>
+                    <h4 class="font-semibold text-tavern-dark">Character Chat</h4>
+                    <p class="text-sm text-tavern-brown mt-2">Engaging AI conversations</p>
+                </div>
+                
+                <div class="bg-tavern-cream rounded-xl p-6 shadow-lg">
+                    <div class="bg-gray-200 rounded-lg h-64 mb-4 flex items-center justify-center">
+                        <span class="text-gray-500">📖 Story Mode</span>
+                    </div>
+                    <h4 class="font-semibold text-tavern-dark">Story Mode</h4>
+                    <p class="text-sm text-tavern-brown mt-2">Interactive storytelling</p>
+                </div>
+                
+                <div class="bg-tavern-cream rounded-xl p-6 shadow-lg">
+                    <div class="bg-gray-200 rounded-lg h-64 mb-4 flex items-center justify-center">
+                        <span class="text-gray-500">⚙️ Settings</span>
+                    </div>
+                    <h4 class="font-semibold text-tavern-dark">Provider Settings</h4>
+                    <p class="text-sm text-tavern-brown mt-2">Easy LLM configuration</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LLM Providers Section -->
+    <section class="py-20 bg-tavern-cream">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16 text-tavern-dark">Multiple LLM Providers</h2>
+            
+            <div class="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl p-8 shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark flex items-center">
+                        <span class="bg-blue-100 p-2 rounded-lg mr-3">🌐</span>
+                        OpenRouter
+                    </h3>
+                    <p class="text-tavern-brown mb-4">Access 60+ free AI models from leading providers.</p>
+                    <ul class="space-y-2 text-tavern-brown">
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Free tier available
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Multiple model options
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Cloud-based service
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-xl p-8 shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark flex items-center">
+                        <span class="bg-green-100 p-2 rounded-lg mr-3">🏠</span>
+                        Ollama
+                    </h3>
+                    <p class="text-tavern-brown mb-4">Self-hosted AI models for complete privacy and control.</p>
+                    <ul class="space-y-2 text-tavern-brown">
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Complete privacy
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            No usage limits
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-green-500 mr-2">✓</span>
+                            Local or cloud deployment
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Getting Started Section -->
+    <section id="getting-started" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16 text-tavern-dark">Get Started in Minutes</h2>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="bg-tavern-amber text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
+                        <h3 class="text-xl font-bold mb-3 text-tavern-dark">Download & Install</h3>
+                        <p class="text-tavern-brown">Get TinyTavern for your platform - mobile or web browser.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-tavern-amber text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
+                        <h3 class="text-xl font-bold mb-3 text-tavern-dark">Configure Provider</h3>
+                        <p class="text-tavern-brown">Set up OpenRouter or Ollama for AI-powered conversations.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-tavern-amber text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
+                        <h3 class="text-xl font-bold mb-3 text-tavern-dark">Start Chatting</h3>
+                        <p class="text-tavern-brown">Import characters or create books and begin your AI adventure!</p>
+                    </div>
+                </div>
+                
+                <div class="mt-16 bg-tavern-cream rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-4 text-tavern-dark">Quick Setup Commands</h3>
+                    <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        <div class="mb-2"># Clone the repository</div>
+                        <div class="mb-2">git clone https://github.com/yourusername/tinytavern.git</div>
+                        <div class="mb-2">cd tinytavern</div>
+                        <div class="mb-4"># Install and run</div>
+                        <div class="mb-2">npm install</div>
+                        <div>npm run web  # For web version</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="py-20 bg-gradient-to-br from-tavern-amber to-tavern-dark text-white">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold mb-8">Ready to Start Your Adventure?</h2>
+            <p class="text-xl mb-12 text-white/90">Join thousands of users enjoying free, private AI conversations and interactive stories.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-6 justify-center max-w-2xl mx-auto">
+                <a href="#" class="bg-white text-tavern-dark px-8 py-4 rounded-lg text-lg font-semibold hover:bg-tavern-cream transition-colors shadow-lg flex items-center justify-center">
+                    <span class="mr-2">📱</span>
+                    Download for Mobile
+                </a>
+                <a href="#" class="bg-white text-tavern-dark px-8 py-4 rounded-lg text-lg font-semibold hover:bg-tavern-cream transition-colors shadow-lg flex items-center justify-center">
+                    <span class="mr-2">🌐</span>
+                    Try Web Version
+                </a>
+                <a href="https://github.com/yourusername/tinytavern" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-tavern-dark transition-colors flex items-center justify-center">
+                    <span class="mr-2">📦</span>
+                    View on GitHub
+                </a>
+            </div>
+            
+            <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center max-w-3xl mx-auto">
+                <div>
+                    <div class="text-3xl font-bold">100%</div>
+                    <div class="text-white/80">Free Forever</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold">0</div>
+                    <div class="text-white/80">Data Collection</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold">∞</div>
+                    <div class="text-white/80">Message Limits</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold">MIT</div>
+                    <div class="text-white/80">Open Source</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-tavern-dark text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-tavern-amber rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold">🍺</span>
+                        </div>
+                        <h3 class="text-xl font-bold">TinyTavern</h3>
+                    </div>
+                    <p class="text-white/80">Your personal AI companion and interactive storyteller, completely free and open source.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">Features</h4>
+                    <ul class="space-y-2 text-white/80">
+                        <li>Character Chat</li>
+                        <li>Interactive Books</li>
+                        <li>AI Image Gallery</li>
+                        <li>Cross-Platform</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">Providers</h4>
+                    <ul class="space-y-2 text-white/80">
+                        <li>OpenRouter</li>
+                        <li>Ollama</li>
+                        <li>Self-Hosted</li>
+                        <li>Privacy First</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">Community</h4>
+                    <ul class="space-y-2 text-white/80">
+                        <li><a href="#" class="hover:text-tavern-amber transition-colors">GitHub</a></li>
+                        <li><a href="#" class="hover:text-tavern-amber transition-colors">Issues</a></li>
+                        <li><a href="#" class="hover:text-tavern-amber transition-colors">Contribute</a></li>
+                        <li><a href="#" class="hover:text-tavern-amber transition-colors">License</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-white/20 mt-8 pt-8 text-center text-white/60">
+                <p>&copy; 2024 TinyTavern. Licensed under MIT License. Made with ❤️ for the AI community.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Smooth Scroll Script -->
+    <script>
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

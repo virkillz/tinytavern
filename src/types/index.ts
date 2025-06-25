@@ -203,3 +203,26 @@ export interface GeneratedImage {
   uri: string;
   createdAt: Date;
 }
+
+// Server Character Card Interfaces
+export interface ServerCharacterCard {
+  id: number;
+  name: string;
+  description: string | null;
+  image: string;
+  image_description: string | null;
+  metadata: string;
+  tags: string | null;
+}
+
+export interface ServerCharacterCardsResponse {
+  code: number;
+  data: {
+    entries: ServerCharacterCard[];
+    page_number: number;
+    page_size: number;
+    total_entries: number;
+    total_pages: number;
+  };
+  message: string | null;
+}

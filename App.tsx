@@ -28,6 +28,11 @@ import { BookEditScreen } from './src/screens/BookEditScreen';
 // Import gallery screens
 import { GalleryScreen } from './src/screens/GalleryScreen';
 import { ImageGenerationScreen } from './src/screens/ImageGenerationScreen';
+
+// Import character cards browser screens
+import { CharacterCardsBrowserScreen } from './src/screens/CharacterCardsBrowserScreen';
+import { CharacterCardDetailScreen } from './src/screens/CharacterCardDetailScreen';
+
 import { BottomNavBar } from './src/components/BottomNavBar';
 
 const Stack = createNativeStackNavigator();
@@ -65,10 +70,10 @@ export default function App() {
     'Home',
     'Characters',
     'Books',
-    'Gallery',
-    'Profile',
+    'CharacterCardsBrowser',
     'BookDetail',
-    'CharacterDetail'
+    'CharacterDetail',
+    'CharacterCardDetail'
   ];
 
   const shouldShowBottomNav = screensWithBottomNav.includes(currentRoute);
@@ -112,6 +117,10 @@ export default function App() {
                   {/* Gallery Screens */}
                   <Stack.Screen name="Gallery" component={GalleryScreen} />
                   <Stack.Screen name="ImageGeneration" component={ImageGenerationScreen} />
+                  
+                  {/* Character Cards Browser Screens */}
+                  <Stack.Screen name="CharacterCardsBrowser" component={CharacterCardsBrowserScreen} />
+                  <Stack.Screen name="CharacterCardDetail" component={CharacterCardDetailScreen} />
                 </Stack.Navigator>
               </View>
               {shouldShowBottomNav && navigationRef && (
