@@ -39,7 +39,7 @@ export interface ProviderSettings {
   };
   ollama?: {
     host: string;
-    port: number;
+    port?: number;
   };
 }
 

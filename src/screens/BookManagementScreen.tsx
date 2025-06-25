@@ -465,16 +465,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   coverImage: {
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 150,
     borderRadius: 8,
     marginRight: 16,
   },
   coverPlaceholder: {
     backgroundColor: '#ccc',
     marginRight: 16,
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 150,
     borderRadius: 8,
   },
   bookInfo: {
@@ -482,6 +482,7 @@ const styles = StyleSheet.create({
   },
   bookTitle: {
     fontSize: 18,
+    fontWeight: 500,
     marginBottom: 4,
   },
   bookAuthor: {

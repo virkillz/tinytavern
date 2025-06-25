@@ -7,6 +7,7 @@ import {
   Platform,
   Alert,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -202,8 +203,8 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
         }
 
       } else if (settings.provider === 'ollama') {
-        if (!settings.providerSettings?.ollama?.host || !settings.providerSettings?.ollama?.port) {
-          throw new Error('Ollama host and port not configured');
+        if (!settings.providerSettings?.ollama?.host) {
+          throw new Error('Ollama host not configured');
         }
 
         const service = new OllamaService(
@@ -270,9 +271,34 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isUserChoice = item.role === 'user';
     const pageNumber = Math.ceil((index + 1) / 2);
+    const isFirstStoryPage = index === 0 && !isUserChoice;
 
     return (
       <View style={styles.pageContainer}>
+        {/* Book Cover - Only show before first story page */}
+        {isFirstStoryPage && selectedBook && (
+          <View style={styles.bookCoverContainer}>
+            {selectedBook.cover ? (
+              <Image
+                source={selectedBook.cover === 'default_book_asset' 
+                  ? require('../../assets/default.png') 
+                  : { uri: selectedBook.cover }}
+                style={styles.bookCover}
+              />
+            ) : (
+              <View style={styles.bookCoverPlaceholder}>
+                <Avatar.Icon
+                  size={80}
+                  icon="book"
+                  style={styles.bookCoverIcon}
+                />
+              </View>
+            )}
+            <Title style={styles.bookCoverTitle}>{selectedBook.title}</Title>
+            <Paragraph style={styles.bookCoverAuthor}>by {selectedBook.card.data.author}</Paragraph>
+          </View>
+        )}
+
         {/* Page Header */}
         <View style={styles.pageHeader}>
           <Paragraph style={styles.pageNumber}>
@@ -522,6 +548,7 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   headerTitle: {
+    marginTop: 12,
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
@@ -656,6 +683,67 @@ const styles = StyleSheet.create({
   },
   choiceText: {
     color: BookColors.onSurfaceVariant,
+    fontStyle: 'italic',
+  },
+  bookCoverContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingVertical: 20,
+    backgroundColor: BookColors.surface,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: BookColors.primaryLight,
+  },
+  bookCover: {
+    width: 200,
+    height: 300,
+    borderRadius: 12,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: BookColors.cardShadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    borderWidth: 2,
+    borderColor: BookColors.primary,
+  },
+  bookCoverPlaceholder: {
+    width: 200,
+    height: 300,
+    borderRadius: 12,
+    backgroundColor: BookColors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: BookColors.cardShadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    borderWidth: 2,
+    borderColor: BookColors.primary,
+  },
+  bookCoverIcon: {
+    backgroundColor: 'transparent',
+  },
+  bookCoverTitle: {
+    fontSize: 24,
+    fontFamily: BookTypography.serif,
+    fontWeight: '700',
+    color: BookColors.onSurface,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  bookCoverAuthor: {
+    fontSize: 16,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    textAlign: 'center',
     fontStyle: 'italic',
   },
   inputContainer: {

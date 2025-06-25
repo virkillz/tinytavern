@@ -212,8 +212,8 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         }
 
       } else if (settings.provider === 'ollama') {
-        if (!settings.providerSettings?.ollama?.host || !settings.providerSettings?.ollama?.port) {
-          throw new Error('Ollama host and port not configured');
+        if (!settings.providerSettings?.ollama?.host) {
+          throw new Error('Ollama host not configured');
         }
 
         const service = new OllamaService(

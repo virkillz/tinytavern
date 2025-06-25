@@ -81,7 +81,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (settings.provider === 'openrouter') {
       return !!(settings.providerSettings?.openrouter?.apiKey);
     } else if (settings.provider === 'ollama') {
-      return !!(settings.providerSettings?.ollama?.host && settings.providerSettings?.ollama?.port);
+      return !!(settings.providerSettings?.ollama?.host);
     }
     
     return false;
@@ -94,8 +94,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     
     if (settings.provider === 'openrouter' && !settings.providerSettings?.openrouter?.apiKey) {
       return "OpenRouter API key missing. Please configure your API key in settings.";
-    } else if (settings.provider === 'ollama' && (!settings.providerSettings?.ollama?.host || !settings.providerSettings?.ollama?.port)) {
-      return "Ollama connection not configured. Please set up host and port in settings.";
+    } else if (settings.provider === 'ollama' && !settings.providerSettings?.ollama?.host) {
+      return "Ollama connection not configured. Please set up host in settings.";
     }
     
     return null;
@@ -108,7 +108,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       icon: 'account-group',
       color: BookColors.secondary,
       route: 'Characters',
-      description: 'Chat with AI characters using imported character cards'
+      description: 'Chat with AI characters'
     },
     {
       title: 'Interactive Books',
@@ -116,7 +116,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       icon: 'book-multiple',
       color: BookColors.primary,
       route: 'Books',
-      description: 'Experience AI-driven interactive storytelling'
+      description: 'AI-driven interactive story'
     },
     {
       title: 'Settings',
@@ -124,9 +124,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       icon: 'cog',
       color: BookColors.accent,
       route: 'Settings',
-      description: 'Set up OpenRouter, Ollama, and app preferences'
+      description: 'Set up your AI provider'
     }
   ];
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -135,7 +136,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../../assets/splash-icon.png')} 
+              source={require('../../assets/adaptive-icon.png')} 
               style={styles.logo}
             />
             <View style={styles.titleContainer}>
@@ -205,18 +206,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </Card.Content>
           </Card>
         )}
-
-        {/* Welcome Message */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={styles.welcomeTitle}>Welcome to TinyTavern!</Title>
-            <Paragraph style={styles.welcomeText}>
-              Your portable companion for AI character interactions and interactive storytelling. 
-              Import character cards, create custom stories, and enjoy AI-powered conversations 
-              on the go.
-            </Paragraph>
-          </Card.Content>
-        </Card>
 
         {/* Main Menu */}
         <View style={styles.menuContainer}>
@@ -358,9 +347,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   titleContainer: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   appTitle: {
+    paddingTop: 10,
     fontSize: 38,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
@@ -371,7 +361,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   appSubtitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
     textAlign: 'center',
@@ -453,14 +443,6 @@ const styles = StyleSheet.create({
     backgroundColor: BookColors.warning,
     borderRadius: 10,
     elevation: 3,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontFamily: BookTypography.serif,
-    fontWeight: '700',
-    color: BookColors.onSurface,
-    marginBottom: 16,
-    textAlign: 'center',
   },
   welcomeText: {
     fontSize: 18,

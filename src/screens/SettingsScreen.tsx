@@ -32,7 +32,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [provider, setProvider] = useState<ProviderType>('openrouter');
   const [apiKey, setApiKey] = useState('');
   const [ollamaHost, setOllamaHost] = useState('localhost');
-  const [ollamaPort, setOllamaPort] = useState('11434');
+  const [ollamaPort, setOllamaPort] = useState('');
   const [models, setModels] = useState<AIModel[]>([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
@@ -58,7 +58,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         }
         if (settings.providerSettings?.ollama) {
           setOllamaHost(settings.providerSettings.ollama.host);
-          setOllamaPort(settings.providerSettings.ollama.port.toString());
+          setOllamaPort(settings.providerSettings.ollama.port?.toString() || '');
         }
 
         // Fetch models for current provider
@@ -77,7 +77,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       }
     } else if (providerType === 'ollama') {
       const host = settings?.providerSettings?.ollama?.host || ollamaHost;
-      const port = settings?.providerSettings?.ollama?.port || parseInt(ollamaPort);
+      const port = settings?.providerSettings?.ollama?.port || (ollamaPort ? parseInt(ollamaPort) : undefined);
       await fetchOllamaModels(host, port);
     }
   };
@@ -98,7 +98,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const fetchOllamaModels = async (host: string, port: number) => {
+  const fetchOllamaModels = async (host: string, port?: number) => {
     setLoading(true);
     try {
       const service = new OllamaService(host, port);
@@ -123,10 +123,11 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         await fetchOpenRouterModels(apiKey);
         Alert.alert('Success', 'OpenRouter connection successful! Models loaded.');
       } else if (provider === 'ollama') {
-        const service = new OllamaService(ollamaHost, parseInt(ollamaPort));
+        const port = ollamaPort ? parseInt(ollamaPort) : undefined;
+        const service = new OllamaService(ollamaHost, port);
         const isConnected = await service.testConnection();
         if (isConnected) {
-          await fetchOllamaModels(ollamaHost, parseInt(ollamaPort));
+          await fetchOllamaModels(ollamaHost, port);
           Alert.alert('Success', 'Ollama connection successful! Models loaded.');
         } else {
           Alert.alert('Error', 'Failed to connect to Ollama. Please check your host and port.');
@@ -151,7 +152,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         Alert.alert('Error', 'Please enter Ollama host.');
         return;
       }
-      if (!ollamaPort.trim() || isNaN(parseInt(ollamaPort))) {
+      if (ollamaPort.trim() && isNaN(parseInt(ollamaPort))) {
         Alert.alert('Error', 'Please enter a valid Ollama port number.');
         return;
       }
@@ -172,7 +173,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           ...(provider === 'ollama' && {
             ollama: { 
               host: ollamaHost.trim(), 
-              port: parseInt(ollamaPort) 
+              port: ollamaPort ? parseInt(ollamaPort) : undefined
             }
           }),
         },
@@ -182,7 +183,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
       await StorageService.saveSettings(newSettings);
       Alert.alert('Success', 'Settings saved successfully!', [
-        { text: 'OK', onPress: () => navigation.navigate('Chat') }
+        { text: 'OK', onPress: () => navigation.navigate('Home') }
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save settings.');
@@ -281,13 +282,14 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="localhost"
                   />
                   <TextInput
-                    label="Ollama Port"
+                    label="Ollama Port (optional)"
                     value={ollamaPort}
                     onChangeText={setOllamaPort}
                     mode="outlined"
                     style={styles.input}
-                    placeholder="11434"
+                    placeholder="Leave empty for default/HTTPS domains"
                     keyboardType="numeric"
+                    helperText="Only needed for localhost or custom ports (e.g., 11434)"
                   />
                 </>
               )}

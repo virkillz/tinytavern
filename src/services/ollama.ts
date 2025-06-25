@@ -2,15 +2,26 @@ import { OllamaModel, Message, ChatResponse } from '../types';
 
 export class OllamaService {
   private host: string;
-  private port: number;
+  private port?: number;
 
-  constructor(host: string = 'localhost', port: number = 11434) {
+  constructor(host: string = 'localhost', port?: number) {
     this.host = host;
     this.port = port;
   }
 
   private get baseUrl(): string {
-    return `http://${this.host}:${this.port}`;
+    // If host already contains protocol (http:// or https://), use it as-is
+    if (this.host.startsWith('http://') || this.host.startsWith('https://')) {
+      return this.port ? `${this.host}:${this.port}` : this.host;
+    }
+    
+    // If port is provided, use it with http
+    if (this.port) {
+      return `http://${this.host}:${this.port}`;
+    }
+    
+    // Default to http without port
+    return `http://${this.host}`;
   }
 
   async getModels(): Promise<OllamaModel[]> {
