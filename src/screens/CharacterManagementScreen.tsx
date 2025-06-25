@@ -411,6 +411,9 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
   },
+  headerPlaceholder: {
+    width: 40, // Same width as the back button for balance
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
