@@ -784,6 +784,8 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
           visible={illustrationModalVisible}
           onClose={closeIllustrationModal}
           onImageGenerated={handleIllustrationGenerated}
+          messageContent={currentMessageForIllustration ? 
+            messages.find(msg => msg.id === currentMessageForIllustration)?.content : undefined}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

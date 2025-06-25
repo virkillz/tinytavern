@@ -18,21 +18,28 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageGenerationService from '../services/imageGeneration';
+import { OpenRouterService } from '../services/openrouter';
+import { OllamaService } from '../services/ollama';
+import { StorageService } from '../utils/storage';
+import { AppSettings } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 
 interface IllustrationGenerationModalProps {
   visible: boolean;
   onClose: () => void;
   onImageGenerated: (imageData: string) => void;
+  messageContent?: string;
 }
 
 export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalProps> = ({
   visible,
   onClose,
   onImageGenerated,
+  messageContent,
 }) => {
   const [description, setDescription] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [generatingSuggestion, setGeneratingSuggestion] = useState(false);
 
   const generateIllustration = async () => {
     if (!description.trim()) {
@@ -70,20 +77,79 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
   };
 
   const handleClose = () => {
-    if (!generating) {
+    if (!generating && !generatingSuggestion) {
       setDescription('');
       onClose();
     }
   };
 
-  const examplePrompts = [
-    "A medieval castle on a hill at sunset",
-    "A mysterious forest with glowing lights",
-    "An ancient library filled with magical books",
-    "A bustling marketplace in a fantasy city",
-    "A peaceful village by a crystal lake",
-    "A dark dungeon with torches on the walls"
-  ];
+  const generateAISuggestion = async () => {
+    if (!messageContent?.trim()) {
+      Alert.alert('Error', 'No message content available for AI suggestion');
+      return;
+    }
+
+    setGeneratingSuggestion(true);
+
+    try {
+      const settings = await StorageService.getSettings();
+      if (!settings) {
+        Alert.alert('Error', 'AI provider not configured. Please check settings.');
+        return;
+      }
+
+      // Clean the message content by removing existing image markdown
+      const cleanContent = messageContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
+      const prompt = `Create an illustration description for the following part of the story: ${cleanContent}`;
+      
+      let suggestionText = '';
+
+      if (settings.provider === 'openrouter') {
+        if (!settings.providerSettings?.openrouter?.apiKey) {
+          throw new Error('OpenRouter API key not configured');
+        }
+
+        const service = new OpenRouterService(settings.providerSettings.openrouter.apiKey);
+        const apiMessages = [
+          { role: 'system', content: 'You are an expert at creating detailed, visual descriptions for illustrations. Create concise but vivid descriptions that focus on setting, characters, mood, and visual elements.' },
+          { role: 'user', content: prompt }
+        ];
+
+        const response = await service.sendMessage(settings.selectedModel, apiMessages);
+        if (response.choices && response.choices.length > 0) {
+          suggestionText = response.choices[0].message.content;
+        }
+      } else if (settings.provider === 'ollama') {
+        if (!settings.providerSettings?.ollama?.host) {
+          throw new Error('Ollama host not configured');
+        }
+
+        const service = new OllamaService(
+          settings.providerSettings.ollama.host,
+          settings.providerSettings.ollama.port
+        );
+
+        const systemPrompt = 'You are an expert at creating detailed, visual descriptions for illustrations. Create concise but vivid descriptions that focus on setting, characters, mood, and visual elements.';
+        const messages = [{ id: '1', role: 'user' as const, content: prompt, timestamp: new Date() }];
+        
+        suggestionText = await service.sendMessage(messages, settings.selectedModel, systemPrompt);
+      }
+
+      if (suggestionText) {
+        setDescription(suggestionText.trim());
+      } else {
+        Alert.alert('Error', 'No suggestion generated. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating AI suggestion:', error);
+      Alert.alert(
+        'Suggestion Failed',
+        error instanceof Error ? error.message : 'Failed to generate AI suggestion. Please try again.'
+      );
+    } finally {
+      setGeneratingSuggestion(false);
+    }
+  };
 
   const useExample = (example: string) => {
     setDescription(example);
@@ -141,30 +207,37 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
               </Card.Content>
             </Card>
 
-            {/* Example Prompts */}
-            <Card style={styles.card}>
-              <Card.Content>
-                <Title style={styles.sectionTitle}>Example Scenes</Title>
-                <Paragraph style={styles.description}>
-                  Tap any example below to use it as your prompt:
-                </Paragraph>
+            {/* AI Suggestion */}
+            {messageContent && (
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Title style={styles.sectionTitle}>✨ AI Suggestion</Title>
+                  <Paragraph style={styles.description}>
+                    Let AI create an illustration description based on your story content:
+                  </Paragraph>
 
-                <View style={styles.examplesContainer}>
-                  {examplePrompts.map((example, index) => (
-                    <Button
-                      key={index}
-                      mode="outlined"
-                      onPress={() => useExample(example)}
-                      style={styles.exampleButton}
-                      disabled={generating}
-                      compact
-                    >
-                      {example}
-                    </Button>
-                  ))}
-                </View>
-              </Card.Content>
-            </Card>
+                  <Button
+                    mode="contained"
+                    onPress={generateAISuggestion}
+                    disabled={generating || generatingSuggestion}
+                    style={styles.suggestionButton}
+                    icon={generatingSuggestion ? undefined : "magic-staff"}
+                    loading={generatingSuggestion}
+                  >
+                    {generatingSuggestion ? 'Generating Suggestion...' : 'Generate AI Suggestion'}
+                  </Button>
+
+                  {generatingSuggestion && (
+                    <View style={styles.suggestionInfo}>
+                      <ActivityIndicator size="small" color={BookColors.primary} />
+                      <Paragraph style={styles.suggestionText}>
+                        Analyzing your story to create the perfect illustration...
+                      </Paragraph>
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
 
             {/* Tips */}
             <Card style={styles.card}>
@@ -193,7 +266,7 @@ export const IllustrationGenerationModal: React.FC<IllustrationGenerationModalPr
             <Button
               mode="contained"
               onPress={generateIllustration}
-              disabled={!description.trim() || generating}
+              disabled={!description.trim() || generating || generatingSuggestion}
               style={styles.generateButton}
               icon={generating ? undefined : "image-plus"}
               loading={generating}
@@ -294,13 +367,23 @@ const styles = StyleSheet.create({
     color: BookColors.onSurfaceVariant,
     fontStyle: 'italic',
   },
-  examplesContainer: {
-    gap: 8,
+  suggestionButton: {
+    backgroundColor: BookColors.accent,
+    borderRadius: 12,
+    marginBottom: 16,
   },
-  exampleButton: {
-    marginBottom: 8,
-    borderColor: BookColors.primaryLight,
-    borderRadius: 10,
+  suggestionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  suggestionText: {
+    fontSize: 12,
+    fontFamily: BookTypography.serif,
+    color: BookColors.onSurfaceVariant,
+    fontStyle: 'italic',
   },
   tipsContainer: {
     gap: 8,
