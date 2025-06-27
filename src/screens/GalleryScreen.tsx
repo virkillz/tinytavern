@@ -293,7 +293,16 @@ export const GalleryScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Title style={styles.headerTitle}>Gallery</Title>
+          <View style={styles.headerLeft}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              iconColor={BookColors.onSurface}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Title style={styles.headerTitle}>Gallery</Title>
+          </View>
           <View style={styles.headerActions}>
             <Menu
               visible={menuVisible}
@@ -328,7 +337,16 @@ export const GalleryScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Title style={styles.headerTitle}>Gallery</Title>
+        <View style={styles.headerLeft}>
+          <IconButton
+            icon="arrow-left"
+            size={24}
+            iconColor={BookColors.onSurface}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+          <Title style={styles.headerTitle}>Gallery</Title>
+        </View>
         <View style={styles.headerActions}>
           <Paragraph style={styles.imageCount}>
             {images.length} image{images.length !== 1 ? 's' : ''}
@@ -421,12 +439,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BookColors.primaryLight,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  backButton: {
+    margin: 0,
+    marginRight: 8,
+  },
   headerTitle: {
     fontSize: 20,
     fontFamily: BookTypography.serif,
     fontWeight: '700',
     color: BookColors.onSurface,
-    flex: 1,
   },
   headerActions: {
     flexDirection: 'row',

@@ -71,6 +71,8 @@ export default function App() {
     'Characters',
     'Books',
     'CharacterCardsBrowser',
+    'Gallery',
+    'Profile',
     'BookDetail',
     'CharacterDetail',
     'CharacterCardDetail'

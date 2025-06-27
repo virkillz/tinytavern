@@ -23,6 +23,7 @@ import {
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { OllamaService } from '../services/ollama';
+import { OpenAIService } from '../services/openai';
 import { StorageService } from '../utils/storage';
 import { BookStorageService } from '../services/bookStorage';
 import { Message, AppSettings, StoredBook } from '../types';
@@ -49,6 +50,9 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [illustrationModalVisible, setIllustrationModalVisible] = useState(false);
   const [currentMessageForIllustration, setCurrentMessageForIllustration] = useState<string | null>(null);
+  const [illustrationMenuVisible, setIllustrationMenuVisible] = useState<string | null>(null);
+  const [regenerateModalVisible, setRegenerateModalVisible] = useState(false);
+  const [regenerateImageUri, setRegenerateImageUri] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -210,6 +214,33 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
           throw new Error('No response from OpenRouter');
         }
 
+      } else if (settings.provider === 'openai') {
+        if (!settings.providerSettings?.openai?.apiKey) {
+          throw new Error('OpenAI API key not configured');
+        }
+
+        const service = new OpenAIService(settings.providerSettings.openai.apiKey);
+        
+        // Prepare messages for OpenAI API - strip image markdown (same format as OpenRouter)
+        const apiMessages = [
+          { role: 'system', content: bookSystemPrompt },
+          ...newMessages.map(msg => ({
+            role: msg.role,
+            content: stripImageMarkdown(msg.content),
+          }))
+        ];
+
+        const response = await service.sendMessage(
+          settings.selectedModel, 
+          apiMessages
+        );
+        
+        if (response.choices && response.choices.length > 0) {
+          responseContent = response.choices[0].message.content;
+        } else {
+          throw new Error('No response from OpenAI');
+        }
+
       } else if (settings.provider === 'ollama') {
         if (!settings.providerSettings?.ollama?.host) {
           throw new Error('Ollama host not configured');
@@ -330,7 +361,7 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
     return content.replace(imageRegex, '').replace(/\n\n+/g, '\n\n').trim();
   };
 
-  const renderMessageContent = (content: string, isUserChoice: boolean) => {
+  const renderMessageContent = (content: string, isUserChoice: boolean, messageId: string) => {
     // Split content by image markdown pattern
     const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const parts = [];
@@ -355,7 +386,8 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
         type: 'image',
         alt: match[1],
         uri: match[2],
-        key: `image-${match.index}`
+        key: `image-${match.index}`,
+        messageId: messageId
       });
 
       lastIndex = match.index + match[0].length;
@@ -375,12 +407,17 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
 
     // If no images found, just render as text
     if (parts.length === 0) {
+      const userName = userProfile?.name || 'Reader';
+      const translatedContent = selectedBook ? 
+        replaceBookVariables(content, selectedBook.title, userName, selectedBook.card.data.author) : 
+        content;
+      
       return (
         <Paragraph style={[
           styles.pageText,
           isUserChoice ? styles.choiceText : styles.storyText
         ]}>
-          {content}
+          {translatedContent}
         </Paragraph>
       );
     }
@@ -390,6 +427,11 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
       <View>
         {parts.map((part) => {
           if (part.type === 'text') {
+            const userName = userProfile?.name || 'Reader';
+            const translatedContent = selectedBook ? 
+              replaceBookVariables(part.content, selectedBook.title, userName, selectedBook.card.data.author) : 
+              part.content;
+            
             return (
               <Paragraph
                 key={part.key}
@@ -398,10 +440,11 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
                   isUserChoice ? styles.choiceText : styles.storyText
                 ]}
               >
-                {part.content}
+                {translatedContent}
               </Paragraph>
             );
           } else if (part.type === 'image') {
+            const menuKey = `${part.messageId}-${part.uri}`;
             return (
               <View key={part.key} style={styles.illustrationContainer}>
                 <Image
@@ -414,6 +457,38 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
                     {part.alt}
                   </Paragraph>
                 )}
+                
+                {/* Three-dot menu for illustration */}
+                <View style={styles.illustrationMenuContainer}>
+                  <Menu
+                    visible={illustrationMenuVisible === menuKey}
+                    onDismiss={() => setIllustrationMenuVisible(null)}
+                    anchor={
+                      <IconButton
+                        icon="dots-vertical"
+                        size={20}
+                        iconColor="rgba(255, 255, 255, 0.8)"
+                        onPress={() => setIllustrationMenuVisible(menuKey)}
+                        style={styles.illustrationMenuButton}
+                      />
+                    }
+                  >
+                    <Menu.Item
+                      onPress={() => {
+                        regenerateIllustration(part.messageId, part.uri);
+                      }}
+                      title="Regenerate"
+                      leadingIcon="refresh"
+                    />
+                    <Menu.Item
+                      onPress={() => {
+                        deleteIllustration(part.messageId, part.uri);
+                      }}
+                      title="Delete"
+                      leadingIcon="trash-can"
+                    />
+                  </Menu>
+                </View>
               </View>
             );
           }
@@ -484,6 +559,99 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       console.error('Error adding illustration to message:', error);
       Alert.alert('Error', 'Failed to add illustration to story');
+    }
+  };
+
+  const deleteIllustration = async (messageId: string, imageUri: string) => {
+    Alert.alert(
+      'Delete Illustration',
+      'Are you sure you want to delete this illustration?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Remove the image markdown from the message
+              const updatedMessages = messages.map(msg => {
+                if (msg.id === messageId) {
+                  const imageMarkdown = `![Story Illustration](${imageUri})`;
+                  const newContent = msg.content.replace(imageMarkdown, '').replace(/\n\n+/g, '\n\n').trim();
+                  return {
+                    ...msg,
+                    content: newContent
+                  };
+                }
+                return msg;
+              });
+
+              setMessages(updatedMessages);
+              await saveMessages(updatedMessages);
+              setIllustrationMenuVisible(null);
+
+              // Delete the image file from storage
+              try {
+                await ImageStorageService.deleteImageByUri(imageUri);
+              } catch (error) {
+                console.warn('Failed to delete image file:', error);
+              }
+            } catch (error) {
+              console.error('Error deleting illustration:', error);
+              Alert.alert('Error', 'Failed to delete illustration');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const regenerateIllustration = (messageId: string, imageUri: string) => {
+    setCurrentMessageForIllustration(messageId);
+    setRegenerateImageUri(imageUri);
+    setRegenerateModalVisible(true);
+    setIllustrationMenuVisible(null);
+  };
+
+  const handleRegeneratedIllustration = async (base64Image: string) => {
+    if (!currentMessageForIllustration || !regenerateImageUri) return;
+
+    try {
+      // Save the new illustration to local storage
+      const savedImage = await ImageStorageService.saveImage(
+        base64Image,
+        'Story illustration',
+        'horizontal'
+      );
+
+      // Replace the old image with the new one in the message
+      const updatedMessages = messages.map(msg => {
+        if (msg.id === currentMessageForIllustration) {
+          const oldImageMarkdown = `![Story Illustration](${regenerateImageUri})`;
+          const newImageMarkdown = `![Story Illustration](${savedImage.uri})`;
+          const newContent = msg.content.replace(oldImageMarkdown, newImageMarkdown);
+          return {
+            ...msg,
+            content: newContent
+          };
+        }
+        return msg;
+      });
+
+      setMessages(updatedMessages);
+      await saveMessages(updatedMessages);
+
+      // Delete the old image file
+      try {
+        await ImageStorageService.deleteImageByUri(regenerateImageUri);
+      } catch (error) {
+        console.warn('Failed to delete old image file:', error);
+      }
+
+      setRegenerateImageUri(null);
+    } catch (error) {
+      console.error('Error regenerating illustration:', error);
+      Alert.alert('Error', 'Failed to regenerate illustration');
     }
   };
 
@@ -618,7 +786,7 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : (
               <View>
-                {renderMessageContent(item.content, isUserChoice)}
+                {renderMessageContent(item.content, isUserChoice, item.id)}
               </View>
             )}
           </Card.Content>
@@ -808,6 +976,19 @@ export const BookChatScreen: React.FC<Props> = ({ navigation }) => {
           visible={illustrationModalVisible}
           onClose={closeIllustrationModal}
           onImageGenerated={handleIllustrationGenerated}
+          messageContent={currentMessageForIllustration ? 
+            messages.find(msg => msg.id === currentMessageForIllustration)?.content : undefined}
+        />
+
+        {/* Regenerate Illustration Modal */}
+        <IllustrationGenerationModal
+          visible={regenerateModalVisible}
+          onClose={() => {
+            setRegenerateModalVisible(false);
+            setCurrentMessageForIllustration(null);
+            setRegenerateImageUri(null);
+          }}
+          onImageGenerated={handleRegeneratedIllustration}
           messageContent={currentMessageForIllustration ? 
             messages.find(msg => msg.id === currentMessageForIllustration)?.content : undefined}
         />
@@ -1121,5 +1302,22 @@ const styles = StyleSheet.create({
     color: BookColors.onSurfaceVariant,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  illustrationMenuContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: BookColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  illustrationMenuButton: {
+    margin: 0,
+    width: 32,
+    height: 32,
   },
 });

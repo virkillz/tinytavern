@@ -29,9 +29,16 @@ export interface OllamaModel {
   };
 }
 
-export type AIModel = OpenRouterModel | OllamaModel;
+export interface OpenAIModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+}
 
-export type ProviderType = 'openrouter' | 'ollama';
+export type AIModel = OpenRouterModel | OllamaModel | OpenAIModel;
+
+export type ProviderType = 'openrouter' | 'ollama' | 'openai';
 
 export interface ProviderSettings {
   openrouter?: {
@@ -40,6 +47,9 @@ export interface ProviderSettings {
   ollama?: {
     host: string;
     port?: number;
+  };
+  openai?: {
+    apiKey: string;
   };
   imageGenerator?: {
     baseUrl: string;

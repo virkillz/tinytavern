@@ -19,6 +19,8 @@ import {
   IconButton,
   ActivityIndicator,
   Chip,
+  Dialog,
+  Portal,
 } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -56,6 +58,8 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const [newTag, setNewTag] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [promptDialogVisible, setPromptDialogVisible] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
 
   useEffect(() => {
     if (isEditing && bookId) {
@@ -156,8 +160,6 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
 
-      setGeneratingImage(true);
-
       // Create a prompt based on book details
       let prompt = '';
       if (title.trim()) {
@@ -177,7 +179,21 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
         prompt += ', book cover design, detailed artwork';
       }
 
-      const base64Image = await ImageGenerationService.generateImage(prompt, 'vertical');
+      // Show prompt review dialog
+      setGeneratedPrompt(prompt);
+      setPromptDialogVisible(true);
+    } catch (error) {
+      console.error('Error preparing cover generation:', error);
+      Alert.alert('Error', 'Failed to prepare cover generation');
+    }
+  };
+
+  const executeCoverGeneration = async () => {
+    try {
+      setPromptDialogVisible(false);
+      setGeneratingImage(true);
+
+      const base64Image = await ImageGenerationService.generateImage(generatedPrompt, 'vertical');
       
       // Convert base64 to file URI
       const fileName = `generated_book_cover_${Date.now()}.png`;
@@ -543,6 +559,48 @@ export const BookEditScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Prompt Review Dialog */}
+      <Portal>
+        <Dialog 
+          visible={promptDialogVisible} 
+          onDismiss={() => setPromptDialogVisible(false)}
+          style={styles.promptDialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>Review Generated Prompt</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph style={styles.dialogDescription}>
+              Review and edit the AI prompt that will be used to generate your book cover:
+            </Paragraph>
+            <TextInput
+              label="AI Prompt"
+              value={generatedPrompt}
+              onChangeText={setGeneratedPrompt}
+              mode="outlined"
+              multiline
+              numberOfLines={4}
+              style={styles.promptInput}
+              placeholder="Enter prompt for AI image generation..."
+            />
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button 
+              onPress={() => setPromptDialogVisible(false)}
+              style={styles.dialogButton}
+            >
+              Cancel
+            </Button>
+            <Button 
+              mode="contained" 
+              onPress={executeCoverGeneration}
+              style={styles.dialogButton}
+              disabled={!generatedPrompt.trim()}
+            >
+              Generate Cover
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -682,5 +740,31 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     paddingVertical: 8,
+  },
+  promptDialog: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    margin: 20,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  dialogDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  promptInput: {
+    marginBottom: 8,
+  },
+  dialogActions: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  dialogButton: {
+    marginHorizontal: 4,
   },
 });

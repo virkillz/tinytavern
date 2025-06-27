@@ -1,6 +1,6 @@
 import { ServerCharacterCardsResponse, ServerCharacterCard, CharacterCard, StoredCharacter, StoredBook, BookCard } from '../types';
 
-const BASE_URL = 'https://a636-110-138-86-119.ngrok-free.app';
+const BASE_URL = 'https://81a0-117-54-230-234.ngrok-free.app';
 
 export class CharacterCardsBrowserService {
   static async fetchCharacterCards(page: number = 1): Promise<ServerCharacterCardsResponse> {

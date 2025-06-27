@@ -28,10 +28,16 @@
       "permissions": [
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
-      ]
+      ],
+      "package": "com.virkill.tinytavern"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "80f8a564-5586-47e1-afaf-e4cf977cc6c5"
+      }
     }
   }
 }

@@ -297,7 +297,7 @@ export const CharacterCardsBrowserScreen: React.FC<Props> = ({ navigation }) => 
             iconColor={BookColors.onSurface}
             onPress={() => navigation.goBack()}
           />
-          <Title style={styles.headerTitle}>Character Cards</Title>
+          <Title style={styles.headerTitle}>Explore</Title>
         </View>
       </View>
 

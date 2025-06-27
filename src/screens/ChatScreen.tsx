@@ -22,6 +22,7 @@ import {
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { OllamaService } from '../services/ollama';
+import { OpenAIService } from '../services/openai';
 import { StorageService } from '../utils/storage';
 import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
@@ -215,6 +216,48 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           responseContent = response.choices[0].message.content;
         } else {
           throw new Error('No response from OpenRouter');
+        }
+
+      } else if (settings.provider === 'openai') {
+        if (!settings.providerSettings?.openai?.apiKey) {
+          throw new Error('OpenAI API key not configured');
+        }
+
+        const service = new OpenAIService(settings.providerSettings.openai.apiKey);
+        
+        // Prepare messages for OpenAI API (same format as OpenRouter)
+        let apiMessages: Array<{role: string, content: string}>;
+        
+        if (selectedCharacter) {
+          // Use character-based system prompt
+          const userName = userProfile?.name || 'User';
+          const characterSystemMessages = CharacterCardService.generateSystemPrompt(selectedCharacter, userName);
+          const userMessages = newMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+          
+          // Combine character system messages with user messages
+          apiMessages = [...characterSystemMessages, ...userMessages];
+        } else {
+          // Use regular system prompt
+          const chatMessages = newMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+          apiMessages = chatMessages;
+        }
+
+        const response = await service.sendMessage(
+          settings.selectedModel, 
+          apiMessages, 
+          selectedCharacter ? undefined : settings.systemPrompt
+        );
+        
+        if (response.choices && response.choices.length > 0) {
+          responseContent = response.choices[0].message.content;
+        } else {
+          throw new Error('No response from OpenAI');
         }
 
       } else if (settings.provider === 'ollama') {
@@ -775,7 +818,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
+    padding: 8,
   },
   messageContainer: {
     marginBottom: 16,

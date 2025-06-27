@@ -25,16 +25,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CharacterStorageService } from '../services/characterStorage';
 import { CharacterCardService } from '../services/characterCard';
 import { PNGDebugger } from '../utils/debugPNG';
-import { StoredCharacter } from '../types';
+import { StoredCharacter, Message } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
+import { StorageService } from '../utils/storage';
 
 interface Props {
   navigation: any;
 }
 
+interface CharacterWithLastChat extends StoredCharacter {
+  lastChatTime?: Date;
+  lastMessage?: string;
+}
+
 export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
-  const [characters, setCharacters] = useState<StoredCharacter[]>([]);
-  const [filteredCharacters, setFilteredCharacters] = useState<StoredCharacter[]>([]);
+  const [characters, setCharacters] = useState<CharacterWithLastChat[]>([]);
+  const [filteredCharacters, setFilteredCharacters] = useState<CharacterWithLastChat[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,15 +87,83 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     setSelectedTags([]);
   };
 
+  const getRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours}h ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return days === 1 ? 'yesterday' : `${days}d ago`;
+    } else if (diffInSeconds < 2592000) {
+      const weeks = Math.floor(diffInSeconds / 604800);
+      return `${weeks}w ago`;
+    } else {
+      const months = Math.floor(diffInSeconds / 2592000);
+      return `${months}mo ago`;
+    }
+  };
+
+  const getLastChatData = async (characterId: string): Promise<{ lastChatTime?: Date; lastMessage?: string }> => {
+    try {
+      const messages = await StorageService.getMessages(characterId);
+      if (messages.length === 0) return {};
+      
+      // Find the most recent message
+      const lastMessage = messages.reduce((latest, message) => {
+        const messageDate = new Date(message.timestamp);
+        const latestDate = new Date(latest.timestamp);
+        return messageDate > latestDate ? message : latest;
+      });
+      
+      return {
+        lastChatTime: new Date(lastMessage.timestamp),
+        lastMessage: lastMessage.content.substring(0, 100) + (lastMessage.content.length > 100 ? '...' : '')
+      };
+    } catch (error) {
+      console.error('Error getting last chat data:', error);
+      return {};
+    }
+  };
+
   const loadCharacters = async () => {
     try {
       const storedCharacters = await CharacterStorageService.getAllCharacters();
-      setCharacters(storedCharacters);
-      setFilteredCharacters(storedCharacters);
+      
+      // Get last chat data for each character
+      const charactersWithLastChat: CharacterWithLastChat[] = await Promise.all(
+        storedCharacters.map(async (character) => {
+          const { lastChatTime, lastMessage } = await getLastChatData(character.id);
+          return { ...character, lastChatTime, lastMessage };
+        })
+      );
+      
+      // Sort by last chat time (most recent first), then by created date
+      const sortedCharacters = charactersWithLastChat.sort((a, b) => {
+        if (a.lastChatTime && b.lastChatTime) {
+          return b.lastChatTime.getTime() - a.lastChatTime.getTime();
+        } else if (a.lastChatTime && !b.lastChatTime) {
+          return -1;
+        } else if (!a.lastChatTime && b.lastChatTime) {
+          return 1;
+        } else {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+      });
+      
+      setCharacters(sortedCharacters);
+      setFilteredCharacters(sortedCharacters);
       
       // Extract all unique tags
       const tags = new Set<string>();
-      storedCharacters.forEach(character => {
+      sortedCharacters.forEach(character => {
         if (character.card.data.tags) {
           character.card.data.tags.forEach(tag => tags.add(tag));
         }
@@ -208,29 +282,34 @@ export const CharacterManagementScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const renderCharacterCard = ({ item }: { item: StoredCharacter }) => (
-    <Card style={styles.characterCard}>
-      <TouchableOpacity onPress={() => navigation.navigate('CharacterDetail', { characterId: item.id })}>
-        <View style={styles.cardContent}>
-          {item.avatar ? (
-            <Image 
-              source={item.avatar === 'default_asset' 
-                ? require('../../assets/default.png') 
-                : { uri: item.avatar }} 
-              style={styles.avatar} 
-            />
-          ) : (
-            <Avatar.Icon size={60} icon="account" style={styles.avatarPlaceholder} />
-          )}
-          <View style={styles.characterInfo}>
+  const renderCharacterCard = ({ item }: { item: CharacterWithLastChat }) => (
+    <TouchableOpacity onPress={() => navigation.navigate('Chat', { characterId: item.id })} style={styles.characterCard}>
+      <View style={styles.cardContent}>
+        {item.avatar ? (
+          <Image 
+            source={item.avatar === 'default_asset' 
+              ? require('../../assets/default.png') 
+              : { uri: item.avatar }} 
+            style={styles.avatar} 
+          />
+        ) : (
+          <Avatar.Icon size={60} icon="account" style={styles.avatarPlaceholder} />
+        )}
+        <View style={styles.characterInfo}>
+          <View style={styles.characterHeader}>
             <Title style={styles.characterName}>{item.name}</Title>
-            <Paragraph style={styles.characterDescription} numberOfLines={2}>
-              {item.card.data.description}
-            </Paragraph>
+            {item.lastChatTime && (
+              <Paragraph style={styles.lastChatTime}>
+                {getRelativeTime(item.lastChatTime)}
+              </Paragraph>
+            )}
           </View>
+          <Paragraph style={styles.lastMessageText} numberOfLines={2}>
+            {item.lastMessage || item.card.data.description}
+          </Paragraph>
         </View>
-      </TouchableOpacity>
-    </Card>
+      </View>
+    </TouchableOpacity>
   );
 
   const createNewCharacter = () => {
@@ -450,51 +529,51 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   characterCard: {
-    marginBottom: 16,
     backgroundColor: BookColors.surface,
-    borderRadius: 16,
-    elevation: 5,
-    shadowColor: BookColors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    borderWidth: 1,
-    borderColor: BookColors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: BookColors.primaryLight,
   },
   cardContent: {
     flexDirection: 'row',
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 20,
-    elevation: 2,
-    borderWidth: 2,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 16,
+    borderWidth: 1,
     borderColor: BookColors.primaryLight,
   },
   avatarPlaceholder: {
     backgroundColor: BookColors.primaryLight,
-    marginRight: 20,
-    elevation: 2,
+    marginRight: 16,
   },
   characterInfo: {
     flex: 1,
   },
-  characterName: {
-    fontSize: 20,
-    fontFamily: BookTypography.serif,
-    fontWeight: '700',
-    color: BookColors.onSurface,
-    marginBottom: 6,
+  characterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  characterDescription: {
-    fontSize: 16,
+  characterName: {
+    fontSize: 18,
+    fontFamily: BookTypography.serif,
+    fontWeight: '600',
+    color: BookColors.onSurface,
+  },
+  lastChatTime: {
+    fontSize: 12,
+    color: BookColors.onSurfaceVariant,
+  },
+  lastMessageText: {
+    fontSize: 14,
     fontFamily: BookTypography.serif,
     color: BookColors.onSurfaceVariant,
-    lineHeight: 24,
+    lineHeight: 20,
   },
   contentContainer: {
     flex: 1,
@@ -525,6 +604,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   tagChip: {
+    borderRadius: 30,
     marginRight: 8,
     marginBottom: 0,
   },

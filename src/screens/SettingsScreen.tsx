@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -24,8 +25,9 @@ import {
 } from 'react-native-paper';
 import { OpenRouterService } from '../services/openrouter';
 import { OllamaService } from '../services/ollama';
+import { OpenAIService } from '../services/openai';
 import { StorageService } from '../utils/storage';
-import { ProviderType, AIModel, AppSettings, OpenRouterModel, OllamaModel } from '../types';
+import { ProviderType, AIModel, AppSettings, OpenRouterModel, OllamaModel, OpenAIModel } from '../types';
 import { BookColors, BookTypography } from '../styles/theme';
 
 interface Props {
@@ -35,6 +37,7 @@ interface Props {
 export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const [provider, setProvider] = useState<ProviderType>('openrouter');
   const [apiKey, setApiKey] = useState('');
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [ollamaHost, setOllamaHost] = useState('localhost');
   const [ollamaPort, setOllamaPort] = useState('');
   const [models, setModels] = useState<AIModel[]>([]);
@@ -72,6 +75,9 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         if (settings.providerSettings?.openrouter?.apiKey) {
           setApiKey(settings.providerSettings.openrouter.apiKey);
         }
+        if (settings.providerSettings?.openai?.apiKey) {
+          setOpenaiApiKey(settings.providerSettings.openai.apiKey);
+        }
         if (settings.providerSettings?.ollama) {
           setOllamaHost(settings.providerSettings.ollama.host);
           setOllamaPort(settings.providerSettings.ollama.port?.toString() || '');
@@ -96,6 +102,11 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       if (key) {
         await fetchOpenRouterModels(key);
       }
+    } else if (providerType === 'openai') {
+      const key = settings?.providerSettings?.openai?.apiKey || openaiApiKey;
+      if (key) {
+        await fetchOpenAIModels(key);
+      }
     } else if (providerType === 'ollama') {
       const host = settings?.providerSettings?.ollama?.host || ollamaHost;
       const port = settings?.providerSettings?.ollama?.port || (ollamaPort ? parseInt(ollamaPort) : undefined);
@@ -114,6 +125,22 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch OpenRouter models. Please check your API key.');
       console.error('Error fetching OpenRouter models:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOpenAIModels = async (key: string) => {
+    if (!key.trim()) return;
+    
+    setLoading(true);
+    try {
+      const service = new OpenAIService(key);
+      const fetchedModels = await service.getModels();
+      setModels(fetchedModels);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch OpenAI models. Please check your API key.');
+      console.error('Error fetching OpenAI models:', error);
     } finally {
       setLoading(false);
     }
@@ -143,6 +170,13 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         }
         await fetchOpenRouterModels(apiKey);
         Alert.alert('Success', 'OpenRouter connection successful! Models loaded.');
+      } else if (provider === 'openai') {
+        if (!openaiApiKey.trim()) {
+          Alert.alert('Error', 'Please enter your OpenAI API key first.');
+          return;
+        }
+        await fetchOpenAIModels(openaiApiKey);
+        Alert.alert('Success', 'OpenAI connection successful! Models loaded.');
       } else if (provider === 'ollama') {
         const port = ollamaPort ? parseInt(ollamaPort) : undefined;
         const service = new OllamaService(ollamaHost, port);
@@ -206,6 +240,11 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (provider === 'openai' && !openaiApiKey.trim()) {
+      Alert.alert('Error', 'Please enter your OpenAI API key.');
+      return;
+    }
+
     if (provider === 'ollama') {
       if (!ollamaHost.trim()) {
         Alert.alert('Error', 'Please enter Ollama host.');
@@ -244,6 +283,9 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           ...(provider === 'openrouter' && {
             openrouter: { apiKey: apiKey.trim() }
           }),
+          ...(provider === 'openai' && {
+            openai: { apiKey: openaiApiKey.trim() }
+          }),
           ...(provider === 'ollama' && {
             ollama: { 
               host: ollamaHost.trim(), 
@@ -280,11 +322,18 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const getModelName = (model: AIModel): string => {
+    if (isOpenAIModel(model)) {
+      return model.id; // OpenAI models use id as the display name
+    }
     return model.name;
   };
 
   const isOpenRouterModel = (model: AIModel): model is OpenRouterModel => {
-    return 'id' in model;
+    return 'id' in model && 'description' in model;
+  };
+
+  const isOpenAIModel = (model: AIModel): model is OpenAIModel => {
+    return 'id' in model && 'object' in model && !('description' in model);
   };
 
   const filteredModels = models.filter(model => {
@@ -294,6 +343,37 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     return true;
   });
 
+  const renderModelItem = ({ item: model }: { item: AIModel }) => (
+    <Card
+      style={[
+        styles.modelCard,
+        selectedModel === getModelId(model) && styles.selectedModelCard,
+      ]}
+      onPress={() => setSelectedModel(getModelId(model))}
+    >
+      <Card.Content>
+        <View style={styles.modelNameRow}>
+          <Paragraph style={styles.modelName}>{getModelName(model)}</Paragraph>
+          {isOpenRouterModel(model) && model.name.toLowerCase().includes('free') && (
+            <Paragraph style={styles.freeTag}>FREE</Paragraph>
+          )}
+        </View>
+        {isOpenRouterModel(model) && model.description && (
+          <Paragraph style={styles.modelDescription}>
+            {model.description.length > 100 
+              ? `${model.description.substring(0, 100)}...` 
+              : model.description}
+          </Paragraph>
+        )}
+        {isOpenAIModel(model) && (
+          <Paragraph style={styles.modelDescription}>
+            OpenAI Model - {model.owned_by}
+          </Paragraph>
+        )}
+      </Card.Content>
+    </Card>
+  );
+
   const getCurrentLLMStatus = () => {
     if (!settings) return 'Not Configured';
     
@@ -301,6 +381,10 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       if (settings.provider === 'openrouter') {
         return settings.providerSettings?.openrouter?.apiKey 
           ? `Provider: OpenRouter\nModel: ${settings.selectedModel || 'No model selected'}` 
+          : 'Not Configured';
+      } else if (settings.provider === 'openai') {
+        return settings.providerSettings?.openai?.apiKey 
+          ? `Provider: OpenAI\nModel: ${settings.selectedModel || 'No model selected'}` 
           : 'Not Configured';
       } else if (settings.provider === 'ollama') {
         return settings.providerSettings?.ollama?.host 
@@ -393,277 +477,307 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.flex} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
           {/* LLM Provider Tab */}
           {activeTab === 'llm' && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Title>LLM Provider Configuration</Title>
-                <Paragraph style={styles.description}>
-                  Choose your preferred AI provider and configure settings.
-                </Paragraph>
+            <ScrollView style={styles.tabContent} contentContainerStyle={styles.scrollContent}>
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Title>LLM Provider Configuration</Title>
+                  <Paragraph style={styles.description}>
+                    Choose your preferred AI provider and configure settings.
+                  </Paragraph>
 
-              <SegmentedButtons
-                value={provider}
-                onValueChange={(value) => {
-                  setProvider(value as ProviderType);
-                  setModels([]);
-                  setSelectedModel('');
-                }}
-                buttons={[
-                  {
-                    value: 'openrouter',
-                    label: 'OpenRouter',
-                    icon: 'cloud',
-                  },
-                  {
-                    value: 'ollama',
-                    label: 'Ollama',
-                    icon: 'server',
-                  },
-                ]}
-                style={styles.providerSelector}
-              />
-
-              {provider === 'openrouter' && (
-                <TextInput
-                  label="OpenRouter API Key"
-                  value={apiKey}
-                  onChangeText={setApiKey}
-                  mode="outlined"
-                  secureTextEntry
-                  style={styles.input}
-                  placeholder="sk-or-..."
+                <SegmentedButtons
+                  value={provider}
+                  onValueChange={(value) => {
+                    setProvider(value as ProviderType);
+                    setModels([]);
+                    setSelectedModel('');
+                  }}
+                  buttons={[
+                    {
+                      value: 'openrouter',
+                      label: 'OpenRouter',
+                      icon: 'cloud',
+                    },
+                    {
+                      value: 'openai',
+                      label: 'OpenAI',
+                      icon: 'robot',
+                    },
+                    {
+                      value: 'ollama',
+                      label: 'Ollama',
+                      icon: 'server',
+                    },
+                  ]}
+                  style={styles.providerSelector}
                 />
-              )}
 
-              {provider === 'ollama' && (
-                <>
+                {provider === 'openrouter' && (
                   <TextInput
-                    label="Ollama Host"
-                    value={ollamaHost}
-                    onChangeText={setOllamaHost}
+                    label="OpenRouter API Key"
+                    value={apiKey}
+                    onChangeText={setApiKey}
                     mode="outlined"
+                    secureTextEntry
                     style={styles.input}
-                    placeholder="localhost"
+                    placeholder="sk-or-..."
                   />
+                )}
+
+                {provider === 'openai' && (
                   <TextInput
-                    label="Ollama Port (optional)"
-                    value={ollamaPort}
-                    onChangeText={setOllamaPort}
+                    label="OpenAI API Key"
+                    value={openaiApiKey}
+                    onChangeText={setOpenaiApiKey}
                     mode="outlined"
+                    secureTextEntry
                     style={styles.input}
-                    placeholder="Leave empty for default/HTTPS domains"
-                    keyboardType="numeric"
+                    placeholder="sk-..."
                   />
-                  <HelperText type="info">
-                    Only needed for custom ports (e.g., 11434)
-                  </HelperText>
-                </>
-              )}
+                )}
 
-              <TextInput
-                label="System Prompt"
-                value={systemPrompt}
-                onChangeText={setSystemPrompt}
-                mode="outlined"
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-                placeholder="You are a helpful AI assistant..."
-              />
+                {provider === 'ollama' && (
+                  <>
+                    <TextInput
+                      label="Ollama Host"
+                      value={ollamaHost}
+                      onChangeText={setOllamaHost}
+                      mode="outlined"
+                      style={styles.input}
+                      placeholder="localhost"
+                    />
+                    <TextInput
+                      label="Ollama Port (optional)"
+                      value={ollamaPort}
+                      onChangeText={setOllamaPort}
+                      mode="outlined"
+                      style={styles.input}
+                      placeholder="Leave empty for default/HTTPS domains"
+                      keyboardType="numeric"
+                    />
+                    <HelperText type="info">
+                      Only needed for custom ports (e.g., 11434)
+                    </HelperText>
+                  </>
+                )}
 
-              <View style={styles.buttonRow}>
-                <Button
+                <TextInput
+                  label="System Prompt"
+                  value={systemPrompt}
+                  onChangeText={setSystemPrompt}
                   mode="outlined"
-                  onPress={testConnection}
-                  loading={testingConnection}
-                  disabled={testingConnection}
-                  style={styles.testButton}
-                >
-                  Test Connection
-                </Button>
-              </View>
+                  multiline
+                  numberOfLines={3}
+                  style={styles.input}
+                  placeholder="You are a helpful AI assistant..."
+                />
 
-              {loading && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" />
-                  <Paragraph style={styles.loadingText}>Loading models...</Paragraph>
+                <View style={styles.buttonRow}>
+                  <Button
+                    mode="outlined"
+                    onPress={testConnection}
+                    loading={testingConnection}
+                    disabled={testingConnection}
+                    style={styles.testButton}
+                  >
+                    Test Connection
+                  </Button>
                 </View>
-              )}
 
-              {models.length > 0 && (
-                <View style={styles.modelSection}>
-                  <View style={styles.modelHeader}>
-                    <Title style={styles.modelTitle}>Select Model</Title>
-                    {provider === 'openrouter' && (
-                      <View style={styles.toggleContainer}>
-                        <Paragraph style={styles.toggleLabel}>Free only</Paragraph>
-                        <Switch
-                          value={showFreeOnly}
-                          onValueChange={setShowFreeOnly}
-                        />
-                      </View>
-                    )}
+                {loading && (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" />
+                    <Paragraph style={styles.loadingText}>Loading models...</Paragraph>
                   </View>
-                  <ScrollView style={styles.modelList} showsVerticalScrollIndicator={false}>
-                    {filteredModels.map((model) => (
-                      <Card
-                        key={getModelId(model)}
-                        style={[
-                          styles.modelCard,
-                          selectedModel === getModelId(model) && styles.selectedModelCard,
-                        ]}
-                        onPress={() => setSelectedModel(getModelId(model))}
-                      >
-                        <Card.Content>
-                          <View style={styles.modelNameRow}>
-                            <Paragraph style={styles.modelName}>{getModelName(model)}</Paragraph>
-                            {isOpenRouterModel(model) && model.name.toLowerCase().includes('free') && (
-                              <Paragraph style={styles.freeTag}>FREE</Paragraph>
-                            )}
-                          </View>
-                          {isOpenRouterModel(model) && model.description && (
-                            <Paragraph style={styles.modelDescription}>
-                              {model.description.length > 100 
-                                ? `${model.description.substring(0, 100)}...` 
-                                : model.description}
-                            </Paragraph>
-                          )}
-                        </Card.Content>
-                      </Card>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
+                )}
 
-              <Button
-                mode="contained"
-                onPress={saveSettings}
-                disabled={loading}
-                style={styles.saveButton}
-              >
-                Save Settings
-              </Button>
-            </Card.Content>
-          </Card>
+                {models.length > 0 && (
+                  <View style={styles.modelSection}>
+                    <View style={styles.modelHeader}>
+                      <Title style={styles.modelTitle}>Select Model</Title>
+                      {provider === 'openrouter' && (
+                        <View style={styles.toggleContainer}>
+                          <Paragraph style={styles.toggleLabel}>Free only</Paragraph>
+                          <Switch
+                            value={showFreeOnly}
+                            onValueChange={setShowFreeOnly}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                <Button
+                  mode="contained"
+                  onPress={saveSettings}
+                  disabled={loading}
+                  style={styles.saveButton}
+                >
+                  Save Settings
+                </Button>
+              </Card.Content>
+            </Card>
+
+            {/* Model List integrated within the scroll view */}
+            {models.length > 0 && (
+              <View style={styles.modelListContainer}>
+                {filteredModels.map((model) => (
+                  <Card
+                    key={getModelId(model)}
+                    style={[
+                      styles.modelCard,
+                      selectedModel === getModelId(model) && styles.selectedModelCard,
+                    ]}
+                    onPress={() => setSelectedModel(getModelId(model))}
+                  >
+                    <Card.Content>
+                      <View style={styles.modelNameRow}>
+                        <Paragraph style={styles.modelName}>{getModelName(model)}</Paragraph>
+                        {isOpenRouterModel(model) && model.name.toLowerCase().includes('free') && (
+                          <Paragraph style={styles.freeTag}>FREE</Paragraph>
+                        )}
+                      </View>
+                      {isOpenRouterModel(model) && model.description && (
+                        <Paragraph style={styles.modelDescription}>
+                          {model.description.length > 100 
+                            ? `${model.description.substring(0, 100)}...` 
+                            : model.description}
+                        </Paragraph>
+                      )}
+                      {isOpenAIModel(model) && (
+                        <Paragraph style={styles.modelDescription}>
+                          OpenAI Model - {model.owned_by}
+                        </Paragraph>
+                      )}
+                    </Card.Content>
+                  </Card>
+                ))}
+              </View>
+            )}
+          </ScrollView>
           )}
 
           {/* Image Provider Tab */}
           {activeTab === 'image' && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Title>Image Generator Configuration</Title>
-              <Paragraph style={styles.description}>
-                Configure the AI image generation service for story illustrations.
-              </Paragraph>
-
-              <TextInput
-                label="Base URL"
-                value={imageGenBaseUrl}
-                onChangeText={setImageGenBaseUrl}
-                mode="outlined"
-                style={styles.input}
-                placeholder="https://api.example.com/sdapi/v1"
-              />
-
-              <TextInput
-                label="Port (optional)"
-                value={imageGenPort}
-                onChangeText={setImageGenPort}
-                mode="outlined"
-                style={styles.input}
-                placeholder="Leave empty for default/HTTPS"
-                keyboardType="numeric"
-              />
-
-              <TextInput
-                label="Authorization Key (optional)"
-                value={imageGenAuthKey}
-                onChangeText={setImageGenAuthKey}
-                mode="outlined"
-                style={styles.input}
-                placeholder="Bearer token or API key"
-                secureTextEntry
-              />
-
-              {/* Collapsible Information */}
-              <Card style={styles.infoCard}>
+            <ScrollView style={styles.tabContent} contentContainerStyle={styles.scrollContent}>
+              <Card style={styles.card}>
                 <Card.Content>
-                  <Button
-                    mode="text"
-                    onPress={() => setShowImageGenInfo(!showImageGenInfo)}
-                    style={styles.infoToggle}
-                    icon={showImageGenInfo ? "chevron-up" : "chevron-down"}
-                    contentStyle={styles.infoToggleContent}
-                  >
-                    Setup Information
-                  </Button>
-                  
-                  {showImageGenInfo && (
-                    <View style={styles.infoContent}>
-                      <Title style={styles.infoTitle}>Compatible Services</Title>
-                      <Paragraph style={styles.infoText}>
-                        This works with any service that has a /txt2img endpoint compatible with Stable Diffusion WebUI API.
-                      </Paragraph>
-                      
-                      <Title style={styles.infoTitle}>Examples:</Title>
-                      <View style={styles.exampleContainer}>
-                        <Paragraph style={styles.exampleText}>
-                          • Novita AI: https://api.novita.ai/v3/async
-                        </Paragraph>
-                        <Paragraph style={styles.exampleText}>
-                          • Self-hosted SD WebUI: http://localhost:7860/sdapi/v1
-                        </Paragraph>
-                        <Paragraph style={styles.exampleText}>
-                          • Custom service: https://your-api.com/sdapi/v1
-                        </Paragraph>
-                      </View>
-                      
-                      <Title style={styles.infoTitle}>Configuration Notes:</Title>
-                      <View style={styles.noteContainer}>
-                        <Paragraph style={styles.noteText}>
-                          • Base URL should end with the API version (e.g., /v1, /v3/async)
-                        </Paragraph>
-                        <Paragraph style={styles.noteText}>
-                          • Do NOT include /txt2img in the base URL
-                        </Paragraph>
-                        <Paragraph style={styles.noteText}>
-                          • Port is only needed for localhost or custom ports
-                        </Paragraph>
-                        <Paragraph style={styles.noteText}>
-                          • Auth key will be sent as Authorization header if provided
-                        </Paragraph>
-                      </View>
-                    </View>
-                  )}
-                </Card.Content>
-              </Card>
+                  <Title>Image Generator Configuration</Title>
+                <Paragraph style={styles.description}>
+                  Configure the AI image generation service for story illustrations.
+                </Paragraph>
 
-              <View style={styles.buttonRow}>
-                <Button
+                <TextInput
+                  label="Base URL"
+                  value={imageGenBaseUrl}
+                  onChangeText={setImageGenBaseUrl}
                   mode="outlined"
-                  onPress={testImageGenConnection}
-                  loading={testingImageGen}
-                  disabled={testingImageGen}
-                  style={styles.testButton}
+                  style={styles.input}
+                  placeholder="https://api.example.com/sdapi/v1"
+                />
+
+                <TextInput
+                  label="Port (optional)"
+                  value={imageGenPort}
+                  onChangeText={setImageGenPort}
+                  mode="outlined"
+                  style={styles.input}
+                  placeholder="Leave empty for default/HTTPS"
+                  keyboardType="numeric"
+                />
+
+                <TextInput
+                  label="Authorization Key (optional)"
+                  value={imageGenAuthKey}
+                  onChangeText={setImageGenAuthKey}
+                  mode="outlined"
+                  style={styles.input}
+                  placeholder="Bearer token or API key"
+                  secureTextEntry
+                />
+
+                {/* Collapsible Information */}
+                <Card style={styles.infoCard}>
+                  <Card.Content>
+                    <Button
+                      mode="text"
+                      onPress={() => setShowImageGenInfo(!showImageGenInfo)}
+                      style={styles.infoToggle}
+                      icon={showImageGenInfo ? "chevron-up" : "chevron-down"}
+                      contentStyle={styles.infoToggleContent}
+                    >
+                      Setup Information
+                    </Button>
+                    
+                    {showImageGenInfo && (
+                      <View style={styles.infoContent}>
+                        <Title style={styles.infoTitle}>Compatible Services</Title>
+                        <Paragraph style={styles.infoText}>
+                          This works with any service that has a /txt2img endpoint compatible with Stable Diffusion WebUI API.
+                        </Paragraph>
+                        
+                        <Title style={styles.infoTitle}>Examples:</Title>
+                        <View style={styles.exampleContainer}>
+                          <Paragraph style={styles.exampleText}>
+                            • Novita AI: https://api.novita.ai/v3/async
+                          </Paragraph>
+                          <Paragraph style={styles.exampleText}>
+                            • Self-hosted SD WebUI: http://localhost:7860/sdapi/v1
+                          </Paragraph>
+                          <Paragraph style={styles.exampleText}>
+                            • Custom service: https://your-api.com/sdapi/v1
+                          </Paragraph>
+                        </View>
+                        
+                        <Title style={styles.infoTitle}>Configuration Notes:</Title>
+                        <View style={styles.noteContainer}>
+                          <Paragraph style={styles.noteText}>
+                            • Base URL should end with the API version (e.g., /v1, /v3/async)
+                          </Paragraph>
+                          <Paragraph style={styles.noteText}>
+                            • Do NOT include /txt2img in the base URL
+                          </Paragraph>
+                          <Paragraph style={styles.noteText}>
+                            • Port is only needed for localhost or custom ports
+                          </Paragraph>
+                          <Paragraph style={styles.noteText}>
+                            • Auth key will be sent as Authorization header if provided
+                          </Paragraph>
+                        </View>
+                      </View>
+                    )}
+                  </Card.Content>
+                </Card>
+
+                <View style={styles.buttonRow}>
+                  <Button
+                    mode="outlined"
+                    onPress={testImageGenConnection}
+                    loading={testingImageGen}
+                    disabled={testingImageGen}
+                    style={styles.testButton}
+                  >
+                    Test Connection
+                  </Button>
+                </View>
+                
+                <Button
+                  mode="contained"
+                  onPress={saveSettings}
+                  disabled={loading}
+                  style={styles.saveButton}
                 >
-                  Test Connection
+                  Save Settings
                 </Button>
-              </View>
-              
-              <Button
-                mode="contained"
-                onPress={saveSettings}
-                disabled={loading}
-                style={styles.saveButton}
-              >
-                Save Settings
-              </Button>
-            </Card.Content>
-          </Card>
+              </Card.Content>
+            </Card>
+          </ScrollView>
           )}
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -700,6 +814,12 @@ const styles = StyleSheet.create({
   },
   headerPlaceholder: {
     width: 48,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  tabContent: {
+    flex: 1,
   },
   scrollContent: {
     padding: 16,
@@ -765,6 +885,10 @@ const styles = StyleSheet.create({
   },
   modelList: {
     maxHeight: 300,
+    marginBottom: 16,
+  },
+  modelListContainer: {
+    marginHorizontal: 16,
     marginBottom: 16,
   },
   modelCard: {

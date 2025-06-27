@@ -208,15 +208,6 @@ export const CharacterDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 {character.card.data.creator && (
                   <View>
                     <Paragraph style={styles.creator}>by {character.card.data.creator}</Paragraph>
-                    <Button
-                      mode="outlined"
-                      onPress={selectCharacterAndChat}
-                      style={styles.chatButtonInline}
-                      icon="chat"
-                      compact
-                    >
-                      Start Chat
-                    </Button>
                   </View>
                 )}
               </View>
@@ -436,6 +427,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tag: {
+    backgroundColor: BookColors.background,
+    borderColor: BookColors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 30,
     marginRight: 8,
     marginBottom: 8,
   },

@@ -558,6 +558,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   tagChip: {
+    borderRadius: 30,
     marginRight: 8,
     marginBottom: 0,
   },
