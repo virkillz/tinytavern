@@ -13,10 +13,10 @@ Connect to your self-hosted Ollama server or use OpenRouter API for the ultimate
 ## Screenshots
 
 <div align="center">
-  <img src="assets/screenshot/home_screen.PNG" alt="Home Screen" width="200" />
-  <img src="assets/screenshot/character_chat.PNG" alt="Character Chat" width="200" />
-  <img src="assets/screenshot/story_mode.PNG" alt="Story Mode" width="200" />
-  <img src="assets/screenshot/provider_settings.PNG" alt="Provider Settings" width="200" />
+  <img src="assets/screenshot/home_screen.png" alt="Home Screen" width="200" />
+  <img src="assets/screenshot/chats.png" alt="Character Chat" width="200" />
+  <img src="assets/screenshot/story.png" alt="Story Mode" width="200" />
+  <img src="assets/screenshot/gallery.png" alt="Gallery" width="200" />
 </div>
 
 _Character selection, character details, character editing, and provider settings screens_
@@ -24,6 +24,7 @@ _Character selection, character details, character editing, and provider setting
 ## Features
 
 ### 🤖 AI Character Chat
+
 - Engage in conversations with customizable AI characters
 - Character Card v2/v3 support (PNG import/export)
 - Per-character conversation history
@@ -31,6 +32,7 @@ _Character selection, character details, character editing, and provider setting
 - Search and filter characters by name and tags
 
 ### 📚 Interactive Books
+
 - AI-powered choose-your-own-adventure stories
 - Convert character cards into interactive books
 - Page-style reading interface with book covers
@@ -40,6 +42,7 @@ _Character selection, character details, character editing, and provider setting
 - Insert custom artwork during story progression
 
 ### 🎨 AI Image Generation Gallery
+
 - Generate images using AI with customizable prompts
 - Support for landscape and portrait orientations
 - Local storage and gallery management
@@ -48,6 +51,7 @@ _Character selection, character details, character editing, and provider setting
 - Integration with story illustrations in interactive books
 
 ### 🛠️ Technical Features
+
 - **Cross-Platform**: iOS, Android, and Web support
 - **Multiple LLM Providers**: OpenRouter and Ollama integration
 - **AI Image Generation**: Stable Diffusion WebUI API compatible services
@@ -57,6 +61,7 @@ _Character selection, character details, character editing, and provider setting
 - **Media Library Integration**: Save generated images to device gallery
 
 ### 🆓 Open & Free
+
 - Completely free with no subscriptions
 - Open source (MIT licensed)
 - No data collection or tracking
@@ -138,8 +143,8 @@ The app works with any service that has a `/txt2img` endpoint compatible with St
 1. **Novita AI**: Professional cloud service
    - Base URL: `https://api.novita.ai/v3/async`
    - Requires API key authorization
-   
-2. **Self-hosted Stable Diffusion WebUI**: 
+2. **Self-hosted Stable Diffusion WebUI**:
+
    - Base URL: `http://localhost:7860/sdapi/v1`
    - No authorization required by default
 
@@ -159,11 +164,13 @@ The app works with any service that has a `/txt2img` endpoint compatible with St
 ### Importing Characters
 
 1. **From Character Card websites:**
+
    - Visit sites like [Character Tavern](https://character-tavern.com/)
    - Download character cards as PNG files
    - Import them using the upload button in the Characters screen
 
 2. **From SillyTavern:**
+
    - Export your existing characters as PNG files from SillyTavern
    - Import them directly into TinyTavern
 
@@ -174,6 +181,7 @@ The app works with any service that has a `/txt2img` endpoint compatible with St
 ### Creating Characters
 
 Create custom AI characters with:
+
 - Name and description
 - Personality traits
 - Scenario/background
@@ -186,6 +194,7 @@ Create custom AI characters with:
 ### Creating Books
 
 1. **Manual Creation:**
+
    - Create books from scratch with title, author, genre
    - Write opening scenarios and first pages
    - Add book covers and descriptions
@@ -244,6 +253,7 @@ src/
 ### Character Cards & Dual-Purpose Import
 
 TinyTavern supports Character Card v2 and v3 formats with a unique twist - the same PNG character card can be imported as either:
+
 - **Character**: For traditional AI conversations
 - **Interactive Book**: For story-driven experiences
 
@@ -252,6 +262,7 @@ This innovative approach means your existing character collection doubles as a l
 ### Variable Replacement System
 
 Both characters and books support template variables:
+
 - `{{char}}` - Character/protagonist name
 - `{{user}}` - Reader's name
 - `{{book}}` - Book title (books only)
@@ -266,6 +277,7 @@ Both characters and books support template variables:
 ### Beautiful Book Theme
 
 The app features a carefully designed book-inspired interface:
+
 - Warm amber color palette
 - Serif typography for readability
 - Page-style layouts for books
@@ -298,18 +310,21 @@ If you encounter any issues or have questions:
 While there are many paid AI chat apps available, TinyTavern offers something unique:
 
 ### 💝 For Character Chat Enthusiasts
+
 - **Complete freedom** - No subscription fees or hidden costs
 - **Privacy first** - Your data stays with you
 - **Full compatibility** - Works with existing SillyTavern characters
 - **Unlimited conversations** - No message limits or restrictions
 
 ### 📖 For Interactive Story Lovers
+
 - **Innovative dual-purpose** - Turn character cards into interactive books
 - **AI-powered storytelling** - Every choice creates unique narratives
 - **Portable reading** - Take your stories anywhere
 - **Community driven** - Share and discover new interactive experiences
 
 ### 🔓 For Everyone
+
 - **Open source transparency** - Code you can trust and modify
 - **Cross-platform** - Works on all devices
 - **Self-hostable** - Complete control over your AI infrastructure
