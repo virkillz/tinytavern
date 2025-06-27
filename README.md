@@ -13,7 +13,7 @@ Connect to your self-hosted Ollama server or use OpenRouter API for the ultimate
 ## Screenshots
 
 <div align="center">
-  <img src="assets/screenshot/home_screen.png" alt="Home Screen" width="200" />
+  <img src="assets/screenshot/homescreen.png" alt="Home Screen" width="200" />
   <img src="assets/screenshot/chats.png" alt="Character Chat" width="200" />
   <img src="assets/screenshot/story.png" alt="Story Mode" width="200" />
   <img src="assets/screenshot/gallery.png" alt="Gallery" width="200" />
